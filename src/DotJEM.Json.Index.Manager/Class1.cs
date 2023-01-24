@@ -144,6 +144,7 @@ public class IndexManager : IIndexManager
 {
     private readonly IStorageManager storageManager;
     private readonly IStorageIndex index;
+
     public IInfoStream InfoStream { get; } = new DefaultInfoStream<IndexManager>();
 
     public IndexManager(IStorageManager storage, IStorageIndex index)
