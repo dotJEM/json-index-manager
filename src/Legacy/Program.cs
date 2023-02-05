@@ -1,21 +1,12 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Threading.Tasks;
+﻿using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index;
-using DotJEM.Json.Index.Analyzation;
-using DotJEM.Json.Index.Configuration;
-using DotJEM.Json.Index.Manager;
-using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
-using Lucene.Net.Analysis;
+using DotJEM.Json.Storage;
 using Lucene.Net.Documents;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Version = Lucene.Net.Util.Version;
+using Newtonsoft.Json;
+using System.IO.Compression;
+using Legacy;
 
 var storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=ssn3db;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
@@ -25,7 +16,7 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-var index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new DotJemAnalyzer(Version.LUCENE_30)));
+var index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index"));
 index.Configuration.SetTypeResolver("contentType");
 index.Configuration.SetRawField("$raw");
 index.Configuration.SetScoreField("$score");
