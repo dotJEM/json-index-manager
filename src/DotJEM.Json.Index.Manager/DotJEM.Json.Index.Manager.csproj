@@ -13,6 +13,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotJEM.Diagnostics.Streams\DotJEM.Diagnostics.Streams.csproj" />
+    <ProjectReference Include="..\DotJEM.TaskScheduler\DotJEM.TaskScheduler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Cleanup\" />
+    <Folder Include="Snapshots\" />
   </ItemGroup>
 
 </Project>

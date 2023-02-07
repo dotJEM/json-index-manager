@@ -6,5 +6,5 @@ public interface IForwarderObservable<T> : IObservable<T>, IDisposable
 {
     void Publish(T value);
     void Raise(Exception ex);
-    void Forward(IForwarderObservable<T> piped);
+    IDisposable Forward(IForwarderObservable<T> piped);
 }

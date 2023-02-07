@@ -1,9 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Analyzation;
@@ -11,11 +16,12 @@ using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
-using Lucene.Net.Analysis;
 using Lucene.Net.Documents;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Version = Lucene.Net.Util.Version;
+
+
 
 var storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=ssn3db;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
@@ -33,10 +39,20 @@ index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 
-IStorageManager storageManager = new StorageManager(storage);
-IIndexManager manager = new IndexManager(storageManager, index);
-Task runner =Task.Run(async () => await storageManager.Run());
+IStorageManager storageManager = new StorageManager(storage, new DotJEM.TaskScheduler.TaskScheduler());
+Task runner = Task.Run(async () => await storageManager.RunAsync());
 //Task runner = storage.Run();
+storageManager.Observable
+    .ForEachAsync(_ =>
+    {
+        Reporter.Increment("LOAD");
+    });
+
+
+
+//storageManager.Observable.LongCount().ForEachAsync(cnt => Console.WriteLine($"Objects loaded: {cnt++}"));
+
+IIndexManager manager = new IndexManager(storageManager, index);
 
 while (true)
 {
@@ -47,7 +63,7 @@ while (true)
             break;
 
         default:
-            manager.Flush();
+            Reporter.Report();
             break;
     }
 }
@@ -88,6 +104,34 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
                 reader.Close();
                 return entity;
             }
+        }
+    }
+}
+
+public static class Reporter
+{
+    private static long exceptions;
+    private static Stopwatch watch = Stopwatch.StartNew();
+    private static ConcurrentDictionary<string, long> counters = new();
+
+    public static void IncrementExceptions()
+    {
+        Interlocked.Increment(ref exceptions);
+
+    }
+
+    public static void Increment(string counter)
+    {
+        long count = counters.AddOrUpdate(counter, _ => 1, (_, v) => v + 1);
+        if(count % 25000 == 0) Console.WriteLine($"{counter} [{watch.Elapsed}] {count} ({count / watch.Elapsed.TotalSeconds} / sec) => {exceptions}");
+    }
+
+    public static void Report()
+    {
+        Console.WriteLine($"COUNTERS:");
+        foreach (var counter in counters)
+        {
+            Console.WriteLine($"{counter.Key} [{watch.Elapsed}] {counter.Value} ({counter.Value / watch.Elapsed.TotalSeconds} / sec) => {exceptions}");
         }
     }
 }

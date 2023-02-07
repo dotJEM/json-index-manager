@@ -9,6 +9,13 @@ public static class ObservableSubscriptionExtensions
     {
         Guid id = Guid.NewGuid();
         dictionary.Add(id, observer);
-        return new ObservableSubscription(() => dictionary.Remove(id));
+        //Note: Making the dictionary a weak reference here means the source observable can be fully collected by the GC
+        //      including it's subscriber tracking even though there are still live subscribers. These subscribers won't receive
+        //      anything from this subscription in this event anyways.
+        WeakReference<IDictionary<Guid, TObserver>> reference = new(dictionary);
+        return new ObservableSubscription(() => {
+            if(reference.TryGetTarget(out IDictionary<Guid, TObserver> x))
+                x.Remove(id);
+        });
     }
 }

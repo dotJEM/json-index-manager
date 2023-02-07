@@ -1,0 +1,47 @@
+﻿using System.Linq;
+using System.Threading.Tasks;
+using DotJEM.Diagnostics.Streams;
+using DotJEM.Json.Storage;
+using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
+using DotJEM.ObservableExt;
+using DotJEM.TaskScheduler;
+using Newtonsoft.Json.Linq;
+
+namespace DotJEM.Json.Index.Manager;
+
+public interface IStorageManager
+{
+    IInfoStream InfoStream { get; }
+    IForwarderObservable<IStorageChange> Observable { get; }
+    Task RunAsync();
+}
+public class StorageManager : IStorageManager
+{
+    private readonly IStorageAreaObserverFactory factory;
+
+    private readonly StorageObservable observable = new StorageObservable();
+    public IForwarderObservable<IStorageChange> Observable => observable;
+    public IInfoStream InfoStream { get; } = new DefaultInfoStream<StorageManager>();
+
+
+    public StorageManager(IStorageContext context, ITaskScheduler scheduler)
+        : this(new StorageAreaObserverFactory(context, scheduler))
+    {
+    }
+
+    public StorageManager(IStorageAreaObserverFactory factory)
+    {
+        this.factory = factory;
+    }
+
+    public async Task RunAsync()
+    {
+        await Task.WhenAll(
+            factory.CreateAll().Select(async observer =>
+            {
+                observer.Observable.Forward(observable);
+                await observer.RunAsync().ConfigureAwait(false);
+            })
+        ).ConfigureAwait(false);
+    }
+}

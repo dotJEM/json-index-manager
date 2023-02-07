@@ -7,7 +7,8 @@ public abstract class AbstractObservable<T> : IForwarderObservable<T>
 {
     private readonly Dictionary<Guid, IObserver<T>> subscribers = new();
 
-    public IDisposable Subscribe(IObserver<T> observer) => subscribers.Attach(observer);
+    public IDisposable Subscribe(IObserver<T> observer) 
+        => subscribers.Attach(observer);
 
     public void Publish(T value)
     {
@@ -36,9 +37,9 @@ public abstract class AbstractObservable<T> : IForwarderObservable<T>
             observer.OnError(ex);
     }
 
-    public void Forward(IForwarderObservable<T> piped)
+    public IDisposable Forward(IForwarderObservable<T> piped)
     {
-        Subscribe(new Forwarder(piped));
+        return Subscribe(new Forwarder(piped));
     }
 
     public class Forwarder : IObserver<T>
