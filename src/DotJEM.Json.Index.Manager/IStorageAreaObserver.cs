@@ -49,6 +49,7 @@ public class StorageAreaObserver : IStorageAreaObserver
     {
         task.Dispose();
         await task;
+        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, $"Initializing for area '{area.Name}'.");
     }
 
     public void Initialize(long generation = 0)
@@ -57,11 +58,11 @@ public class StorageAreaObserver : IStorageAreaObserver
     }
 
     public void RunUpdateCheck()
-    {
+    { 
+        long latestGeneration = log.LatestGeneration;
         if (!initialized)
         {
-            long latestGeneration = log.LatestGeneration;
-            infoStream.WriteInfo($"Initializing observer for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, $"Initializing for area '{area.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
             foreach (IChangeLogRow change in changes)
             {
@@ -70,11 +71,11 @@ public class StorageAreaObserver : IStorageAreaObserver
                     observable.Publish(new StorageChange(change) { Type = ChangeType.Create, LatestGeneration = latestGeneration });
             }
             initialized = true;
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, $"Initialization complete for area '{area.Name}'.");
         }
         else
         {
-            long latestGeneration = log.LatestGeneration;
-            infoStream.WriteInfo($"Checking updates for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, $"Checking updates for area '{area.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
             foreach (IChangeLogRow change in changes)
             {
@@ -82,9 +83,13 @@ public class StorageAreaObserver : IStorageAreaObserver
                 if (change.Type != ChangeType.Faulty)
                     observable.Publish(new StorageChange(change) { LatestGeneration = latestGeneration });
             }
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, $"Done checking updates for area '{area.Name}'.");
         }
     }
 }
+
+
+
 public interface IStorageChange
 {
     string Area { get; }

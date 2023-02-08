@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Runtime;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
@@ -24,23 +23,6 @@ namespace DotJEM.Json.Index.Manager;
 
 public interface IStorageObservable : IObservable<IStorageChange> { }
 
-
-public static class IndexManagerInfoStreamExtensions
-{
-    public static void WriteObjectLoaded<TSource>(this IInfoStream<TSource> self, string message, [CallerMemberName] string callerMemberName = null, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
-    {
-        self.WriteEvent(new StorageObjectsLoadedInfoStreamEvent<TSource>("INFO", message, callerMemberName, callerFilePath, callerLineNumber));
-    }
-
-}
-
-public class StorageObjectsLoadedInfoStreamEvent<TSource> : InfoStreamEvent<TSource>
-{
-    public StorageObjectsLoadedInfoStreamEvent(string level, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
-        : base(level, message, callerMemberName, callerFilePath, callerLineNumber)
-    {
-    }
-}
 
 public class StorageObservable : AbstractObservable<IStorageChange>
 {

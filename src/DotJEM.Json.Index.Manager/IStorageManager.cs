@@ -20,8 +20,10 @@ public class StorageManager : IStorageManager
     private readonly IStorageAreaObserverFactory factory;
 
     private readonly StorageObservable observable = new StorageObservable();
+    private readonly IInfoStream<StorageManager> infoStream = new DefaultInfoStream<StorageManager>();
+
     public IForwarderObservable<IStorageChange> Observable => observable;
-    public IInfoStream InfoStream { get; } = new DefaultInfoStream<StorageManager>();
+    public IInfoStream InfoStream => infoStream;
 
 
     public StorageManager(IStorageContext context, ITaskScheduler scheduler)
@@ -40,6 +42,7 @@ public class StorageManager : IStorageManager
             factory.CreateAll().Select(async observer =>
             {
                 observer.Observable.Forward(observable);
+                observer.InfoStream.Forward(infoStream);
                 await observer.RunAsync().ConfigureAwait(false);
             })
         ).ConfigureAwait(false);

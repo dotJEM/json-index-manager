@@ -19,4 +19,9 @@ public class InfoStreamEvent<TSource> : IInfoStreamEvent
         CallerFilePath = callerFilePath;
         CallerLineNumber = callerLineNumber;
     }
+
+    public override string ToString()
+    {
+        return $"[{Level}] {Message} ({Source} {CallerMemberName} - {CallerFilePath}:{CallerLineNumber})";
+    }
 }
