@@ -2,15 +2,15 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using DotJEM.Json.Index.Configuration.IdentityStrategies;
 using DotJEM.ObservableExt;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Json.Index.Manager.Experimental;
+namespace DotJEM.Json.Index.Manager.WriteContext.Experimental;
 
 internal class ParallelLuceneWriteContext : ILuceneWriteContext
 {
@@ -210,7 +210,7 @@ internal class IngestPipeline<TOutput> : IDisposable
     private readonly AutoResetEvent completionGate = new AutoResetEvent(false);
     private bool disposed;
 
-    public IForwarderObservable<TOutput> Observable { get; } = new Publisher();
+    public IForwarderObservable<TOutput> Observable { get; } = new ForwarderObservable<TOutput>();
 
     public IngestPipeline(int capacity = 256 * 1024)
     {
@@ -264,7 +264,6 @@ internal class IngestPipeline<TOutput> : IDisposable
 
     }
 
-    private class Publisher : AbstractObservable<TOutput> { }
 }
 
 internal interface IIngestTask<out TOutput>

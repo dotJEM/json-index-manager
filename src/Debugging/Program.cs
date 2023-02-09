@@ -11,10 +11,12 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Analyzation;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
+using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using Lucene.Net.Analysis.Standard;
@@ -40,17 +42,16 @@ index.Configuration.SetScoreField("$score");
 index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
-
 IStorageManager storageManager = new StorageManager(storage, new DotJEM.TaskScheduler.TaskScheduler());
-Task runner = Task.Run(async () => await storageManager.RunAsync());
-//Task runner = storage.Run();
+IIndexManager manager = new IndexManager(storageManager, new IndexSnapshotManager(), new WriteContextFactory(index));
 
+Task run = Task.WhenAll(
+    storageManager.Observable.ForEachAsync(Reporter.Capture),
+    storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    Task.Run(storageManager.RunAsync)
+);
 
-storageManager.Observable.ForEachAsync(Reporter.Capture);
-storageManager.InfoStream.ForEachAsync(Console.WriteLine);
-//storageManager.Observable.LongCount().ForEachAsync(cnt => Console.WriteLine($"Objects loaded: {cnt++}"));
-
-IIndexManager manager = new IndexManager(storageManager, index);
 
 while (true)
 {
@@ -58,7 +59,6 @@ while (true)
     {
         case "EXIT":
             goto EXIT;
-            break;
 
         default:
             Reporter.Report();
@@ -67,7 +67,15 @@ while (true)
 }
 
 EXIT:
-await runner;
+await run;
+
+//Task setup = Task.WhenAll(
+//    storageManager.Observable.ForEachAsync(Reporter.Capture)),
+//    storageManager.Inf
+//    );
+
+//storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+//manager.InfoStream.ForEachAsync(Reporter.CaptureInfo)
 
 
 public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
@@ -110,7 +118,7 @@ public static class Reporter
 {
     private static Stopwatch watch = Stopwatch.StartNew();
     private static ConcurrentDictionary<string, long> counters = new();
-    private static ConcurrentDictionary<string, Generation> generations = new();
+    private static ConcurrentDictionary<string, GenerationInfo> generations = new();
 
     public static void Increment(string counter, long currentGen, long latestGen)
     {
@@ -127,37 +135,46 @@ public static class Reporter
         {
             var counter = kv.Key;
             var count = kv.Value;
-            var gen = generations.GetOrAdd(counter, _ => new Generation());
+            var gen = generations.GetOrAdd(counter, _ => new GenerationInfo());
             var currentGen = gen.Current;
             var latestGen = gen.Latest;
             Console.WriteLine($"{counter} [{watch.Elapsed}] {currentGen:N0} of {latestGen:N0} changes processed, {count:N0} objects indexed. ({count / watch.Elapsed.TotalSeconds:F} / sec)");
         }
     }
 
+    public static void CaptureInfo(IInfoStreamEvent evt)
+    {
+        if (evt is StorageObserverInfoStreamEvent sevt)
+        {
+            switch (sevt.EventType)
+            {
+                case StorageObserverEventType.Initializing:
+                    Console.WriteLine(evt);
+                    break;
+                case StorageObserverEventType.Initialized:
+                    Console.WriteLine(evt);
+                    break;
+                case StorageObserverEventType.Updating:
+                    break;
+                case StorageObserverEventType.Updated:
+                    break;
+                case StorageObserverEventType.Stopped:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+    }
+
     public static void Capture(IStorageChange change)
     {
         generations.AddOrUpdate(change.Area, 
-            _ => new Generation(change.Generation, change.LatestGeneration),
-            (_, _) => new Generation(change.Generation, change.LatestGeneration));
-        Generation sum = generations.Values.Aggregate((x, y) => x + y);
+            _ => change.Generation,
+            (_, _) => change.Generation);
+        GenerationInfo sum = generations.Values.Aggregate((x, y) => x + y);
         Increment("LOADED", sum.Current, sum.Latest);
-        Increment(change.Area, change.Generation, change.LatestGeneration);
+        Increment(change.Area, change.Generation.Current, change.Generation.Latest);
     }
-
-    public struct Generation
-    {
-        public long Current { get; }
-        public long Latest { get; }
-
-        public Generation(long current, long latest)
-        {
-            Current = current;
-            Latest = latest;
-        }
-
-        public static Generation operator + (Generation left, Generation right)
-        {
-            return new Generation(left.Current + right.Current, left.Latest + right.Latest);
-        }
-    }
+    
 }

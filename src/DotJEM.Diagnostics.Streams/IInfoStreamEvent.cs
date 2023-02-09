@@ -5,6 +5,6 @@ namespace DotJEM.Diagnostics.Streams;
 public interface IInfoStreamEvent
 {
     Type Source { get; }
-    string Level { get; }
+    InfoLevel Level { get; }
     string Message { get; }
 }

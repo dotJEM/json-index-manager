@@ -8,7 +8,7 @@ namespace DotJEM.TaskScheduler;
 public class TaskScheduler : ITaskScheduler
 {
     private readonly ConcurrentDictionary<Guid, IScheduledTask> tasks = new();
-    private readonly IInfoStream<TaskScheduler> infoStream = new DefaultInfoStream<TaskScheduler>();
+    private readonly IInfoStream<TaskScheduler> infoStream = new InfoStream<TaskScheduler>();
 
     public IInfoStream InfoStream => infoStream;
 

@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <Folder Include="Cleanup\" />
-    <Folder Include="Snapshots\" />
   </ItemGroup>
 
 </Project>

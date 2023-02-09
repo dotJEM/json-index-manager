@@ -15,16 +15,16 @@ public interface IStorageManager
     IForwarderObservable<IStorageChange> Observable { get; }
     Task RunAsync();
 }
+
 public class StorageManager : IStorageManager
 {
     private readonly IStorageAreaObserverFactory factory;
 
-    private readonly StorageObservable observable = new StorageObservable();
-    private readonly IInfoStream<StorageManager> infoStream = new DefaultInfoStream<StorageManager>();
+    private readonly ForwarderObservable<IStorageChange> observable = new ();
+    private readonly InfoStream<StorageManager> infoStream = new ();
 
     public IForwarderObservable<IStorageChange> Observable => observable;
     public IInfoStream InfoStream => infoStream;
-
 
     public StorageManager(IStorageContext context, ITaskScheduler scheduler)
         : this(new StorageAreaObserverFactory(context, scheduler))

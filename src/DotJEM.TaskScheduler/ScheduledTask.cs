@@ -19,7 +19,7 @@ public class ScheduledTask : Disposable, IScheduledTask
     private readonly ActivitySource activitySource;
     private readonly IThreadPool pool;
     private readonly ITrigger trigger;
-    private readonly IInfoStream<ScheduledTask> infoStream = new DefaultInfoStream<ScheduledTask>();
+    private readonly IInfoStream<ScheduledTask> infoStream = new InfoStream<ScheduledTask>();
     private readonly TaskCompletionSource<int> completeCompletionSource;
 
     private RegisteredWaitHandle executing;

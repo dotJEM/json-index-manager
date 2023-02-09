@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
@@ -20,12 +21,12 @@ public class StorageAreaObserver : IStorageAreaObserver
     private readonly IStorageArea area;
     private readonly ITaskScheduler scheduler;
     private readonly IStorageAreaLog log;
-    private readonly StorageObservable observable = new();
+    private readonly ForwarderObservable<IStorageChange> observable = new();
 
     private IScheduledTask task;
     private long generation = 0;
     private bool initialized = false;
-    private readonly IInfoStream<StorageAreaObserver> infoStream = new DefaultInfoStream<StorageAreaObserver>();
+    private readonly IInfoStream<StorageAreaObserver> infoStream = new InfoStream<StorageAreaObserver>();
 
     public IInfoStream InfoStream => infoStream;
     public IForwarderObservable<IStorageChange> Observable => observable;
@@ -49,7 +50,7 @@ public class StorageAreaObserver : IStorageAreaObserver
     {
         task.Dispose();
         await task;
-        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, $"Initializing for area '{area.Name}'.");
+        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, area.Name, $"Initializing for area '{area.Name}'.");
     }
 
     public void Initialize(long generation = 0)
@@ -62,56 +63,71 @@ public class StorageAreaObserver : IStorageAreaObserver
         long latestGeneration = log.LatestGeneration;
         if (!initialized)
         {
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, $"Initializing for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, area.Name, $"Initializing for area '{area.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
-            foreach (IChangeLogRow change in changes)
-            {
-                generation = change.Generation;
-                if (change.Type != ChangeType.Faulty)
-                    observable.Publish(new StorageChange(change) { Type = ChangeType.Create, LatestGeneration = latestGeneration });
-            }
+            PublishChanges(changes, _ => ChangeType.Create);
             initialized = true;
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, $"Initialization complete for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, area.Name, $"Initialization complete for area '{area.Name}'.");
         }
         else
         {
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, $"Checking updates for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, area.Name, $"Checking updates for area '{area.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
+            PublishChanges(changes, row => row.Type);
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, area.Name, $"Done checking updates for area '{area.Name}'.");
+        }
+
+        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, ChangeType> changeTypeGetter) 
+        {
             foreach (IChangeLogRow change in changes)
             {
                 generation = change.Generation;
-                if (change.Type != ChangeType.Faulty)
-                    observable.Publish(new StorageChange(change) { LatestGeneration = latestGeneration });
+                if (change.Type == ChangeType.Faulty)
+                    continue;
+
+                observable.Publish(new StorageChange(change.Area, changeTypeGetter(change), change.CreateEntity(), new GenerationInfo(change.Generation, latestGeneration)));
             }
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, $"Done checking updates for area '{area.Name}'.");
         }
     }
 }
 
+public struct GenerationInfo
+{
+    public long Current { get; }
+    public long Latest { get; }
 
+    public GenerationInfo(long current, long latest)
+    {
+        Current = current;
+        Latest = latest;
+    }
+
+    public static GenerationInfo operator + (GenerationInfo left, GenerationInfo right)
+    {
+        return new GenerationInfo(left.Current + right.Current, left.Latest + right.Latest);
+    }
+}
 
 public interface IStorageChange
 {
     string Area { get; }
-    long Generation { get; }
-    long LatestGeneration { get; }
-    ChangeType Type { get; set; }
+    GenerationInfo Generation { get; }
+    ChangeType Type { get; }
     JObject Entity { get; }
 }
 
-public class StorageChange : IStorageChange
+public struct StorageChange : IStorageChange
 {
-    public long Generation { get; }
-    public long LatestGeneration { get;set; }
-    public ChangeType Type { get; set; }
+    public GenerationInfo Generation { get; }
+    public ChangeType Type { get; }
     public string Area { get; }
     public JObject Entity { get; }
 
-    public StorageChange(IChangeLogRow change)
+    public StorageChange( string area, ChangeType type, JObject entity, GenerationInfo generationInfo)
     {
-        Generation = change.Generation;
-        Type = change.Type;
-        Area = change.Area;
-        Entity = change.CreateEntity();
+        Generation = generationInfo;
+        Type = type;
+        Area = area;
+        Entity = entity;
     }
 }

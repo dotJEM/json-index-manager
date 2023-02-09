@@ -1,11 +1,12 @@
-﻿using DotJEM.Diagnostics.Streams;
+﻿using System;
+using DotJEM.Diagnostics.Streams;
 
 namespace DotJEM.TaskScheduler;
 
-public class TaskCompletedInfoStreamEvent<TSource> : InfoStreamEvent<TSource>
+public class TaskCompletedInfoStreamEvent : InfoStreamEvent
 {
-    public TaskCompletedInfoStreamEvent(string level, string message, string callerMemberName, string callerFilePath, int callerLineNumber) 
-        : base(level, message, callerMemberName, callerFilePath, callerLineNumber)
+    public TaskCompletedInfoStreamEvent(Type source, InfoLevel level, string message, string callerMemberName, string callerFilePath, int callerLineNumber) 
+        : base(source, level, message, callerMemberName, callerFilePath, callerLineNumber)
     {
     }
 }

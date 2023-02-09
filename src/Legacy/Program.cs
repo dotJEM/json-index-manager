@@ -7,6 +7,8 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.IO.Compression;
 using Legacy;
+using Lucene.Net.Analysis.Standard;
+using Version = Lucene.Net.Util.Version;
 
 var storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=ssn3db;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
@@ -16,7 +18,8 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-var index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index"));
+var analyzer = new StandardAnalyzer(Version.LUCENE_30, new SortedSet<string>());
+var index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index"), analyzer);
 index.Configuration.SetTypeResolver("contentType");
 index.Configuration.SetRawField("$raw");
 index.Configuration.SetScoreField("$score");

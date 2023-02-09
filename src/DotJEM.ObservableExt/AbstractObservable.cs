@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DotJEM.ObservableExt;
 
-public abstract class AbstractObservable<T> : IForwarderObservable<T>
+public class ForwarderObservable<T> : IForwarderObservable<T>
 {
     private readonly Dictionary<Guid, IObserver<T>> subscribers = new();
 
