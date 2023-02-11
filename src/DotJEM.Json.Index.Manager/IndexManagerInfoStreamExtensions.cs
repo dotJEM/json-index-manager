@@ -23,12 +23,13 @@ public static class IndexManagerInfoStreamExtensions
 public record struct StorageIngestState(AreaIngestState[] Areas)
 {
     public DateTime StartTime => Areas.Min(x => x.StartTime);
+    public TimeSpan Duration => Areas.Max(x => x.Duration);
     public long IngestedCount => Areas.Sum(x => x.IngestedCount);
     public GenerationInfo Generation => Areas.Select(x => x.Generation).Aggregate((left, right) => left + right);
 
     public override string ToString()
     {
-        TimeSpan duration = DateTime.Now - StartTime;
+        TimeSpan duration = Duration;
         GenerationInfo generation = Generation;
         long count = IngestedCount;
         return Areas.Aggregate(new StringBuilder()
@@ -38,12 +39,11 @@ public record struct StorageIngestState(AreaIngestState[] Areas)
     }
 }
 
-public record struct AreaIngestState(string Area, DateTime StartTime, long IngestedCount, GenerationInfo Generation, StorageObserverEventType State)
+public record struct AreaIngestState(string Area, DateTime StartTime, TimeSpan Duration, long IngestedCount, GenerationInfo Generation, StorageObserverEventType State)
 {
     public override string ToString()
     {
-        TimeSpan duration = DateTime.Now - StartTime;
-        return $" -> [{duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / duration.TotalSeconds:F} / sec) - {State}";
+        return $" -> [{Duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / Duration.TotalSeconds:F} / sec) - {State}";
     }
 }
 
@@ -81,24 +81,4 @@ public class StorageObserverInfoStreamEvent : InfoStreamEvent
         return $"[{Level}] {Area}:{EventType}:{Message} ({Source} {CallerMemberName} - {CallerFilePath}:{CallerLineNumber})";
     }
 }
-
-
-
-//public class StorageObserverInitializingInfoStreamEvent<TSource> : StorageObserverInfoStreamEvent<TSource>
-//{
-//    public StorageObserverInitializingInfoStreamEvent(string level, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
-//        : base(level, message, callerMemberName, callerFilePath, callerLineNumber)
-//    {
-//    }
-//}
-
-//public class StorageObserverInitializedInfoStreamEvent<TSource> : StorageObserverInfoStreamEvent<TSource>
-//{
-//    public StorageObserverInitializedInfoStreamEvent(string level, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
-//        : base(level, message, callerMemberName, callerFilePath, callerLineNumber)
-//    {
-//    }
-//}
-
-
 

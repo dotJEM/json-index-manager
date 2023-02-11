@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -143,7 +144,7 @@ public class IndexIngestProgressTracker : IIndexIngestProgressTracker
     private StorageIngestState CreateState()
     {
         return new StorageIngestState(
-            trackers.Select(kv => new AreaIngestState(kv.Key, kv.Value.StartTime, kv.Value.Counter, kv.Value.GenerationInfo, kv.Value.State)).ToArray()
+            trackers.Select(kv => new AreaIngestState(kv.Key, kv.Value.StartTime, kv.Value.Timer.Elapsed, kv.Value.Counter, kv.Value.GenerationInfo, kv.Value.State)).ToArray()
         );
     }
 
@@ -166,6 +167,8 @@ public class IndexIngestProgressTracker : IIndexIngestProgressTracker
     public class IngestStateInfo
     {
         public DateTime StartTime { get; } = DateTime.Now;
+        public Stopwatch Timer { get; } = Stopwatch.StartNew();
+
         public long Counter { get; private set; }
         public GenerationInfo GenerationInfo { get;  private set;}
         public StorageObserverEventType State { get; private set; }
@@ -177,6 +180,9 @@ public class IndexIngestProgressTracker : IIndexIngestProgressTracker
 
         public IngestStateInfo UpdateState(StorageObserverEventType state)
         {
+            if(state is StorageObserverEventType.Initialized or StorageObserverEventType.Updated or StorageObserverEventType.Stopped)
+                Timer.Stop();
+
             State = state;
             return this;
         }
