@@ -17,6 +17,7 @@ using DotJEM.Json.Index.Analyzation;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
+using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using Lucene.Net.Analysis.Standard;
@@ -43,11 +44,12 @@ index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 IStorageManager storageManager = new StorageManager(storage, new DotJEM.TaskScheduler.TaskScheduler());
-IIndexManager manager = new IndexManager(storageManager, new IndexSnapshotManager(), new WriteContextFactory(index));
+IIndexManager manager = new IndexManager(storageManager, new IndexSnapshotManager(new ZipSnapshotStrategy("")), new WriteContextFactory(index));
 
 Task run = Task.WhenAll(
-    storageManager.Observable.ForEachAsync(Reporter.Capture),
-    storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    //storageManager.Observable.ForEachAsync(Reporter.Capture),
+    //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     Task.Run(storageManager.RunAsync)
 );
@@ -144,27 +146,28 @@ public static class Reporter
 
     public static void CaptureInfo(IInfoStreamEvent evt)
     {
-        if (evt is StorageObserverInfoStreamEvent sevt)
+        switch (evt)
         {
-            switch (sevt.EventType)
-            {
-                case StorageObserverEventType.Initializing:
-                    Console.WriteLine(evt);
-                    break;
-                case StorageObserverEventType.Initialized:
-                    Console.WriteLine(evt);
-                    break;
-                case StorageObserverEventType.Updating:
-                    break;
-                case StorageObserverEventType.Updated:
-                    break;
-                case StorageObserverEventType.Stopped:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
+            case StorageObserverInfoStreamEvent sevt:
+                switch (sevt.EventType)
+                {
+                    case StorageObserverEventType.Starting:
+                    case StorageObserverEventType.Initializing:
+                    case StorageObserverEventType.Initialized:
+                        Console.WriteLine(evt);
+                        break;
+                    case StorageObserverEventType.Updating:
+                    case StorageObserverEventType.Updated:
+                    case StorageObserverEventType.Stopped:
+                        break;
+                }
+                break;
 
+            case StorageIngestStateInfoStreamEvent ievt :
+                if(ievt.State.IngestedCount % 10000 == 0)
+                    Console.WriteLine(ievt.State);
+                break;
+        }
     }
 
     public static void Capture(IStorageChange change)

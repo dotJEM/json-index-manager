@@ -40,7 +40,7 @@ public class StorageAreaObserver : IStorageAreaObserver
     
     public async Task RunAsync()
     {
-        infoStream.WriteInfo($"Ingesting {area.Name}");
+        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, area.Name, $"Ingest starting for area '{area.Name}'.");
         task = scheduler.Schedule($"StorageAreaObserver:{area.Name}", _ => RunUpdateCheck(), "10sec");
         task.InfoStream.Forward(infoStream);
         await task;

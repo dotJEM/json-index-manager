@@ -4,7 +4,7 @@ using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Json.Index.Manager.WriteContext;
+namespace DotJEM.Json.Index.Manager.WriteContexts;
 
 public interface ILuceneWriteContext : IDisposable
 {

@@ -41,6 +41,7 @@ public class StorageManager : IStorageManager
         await Task.WhenAll(
             factory.CreateAll().Select(async observer =>
             {
+
                 observer.Observable.Forward(observable);
                 observer.InfoStream.Forward(infoStream);
                 await observer.RunAsync().ConfigureAwait(false);

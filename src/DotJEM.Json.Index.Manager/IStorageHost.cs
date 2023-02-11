@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System;
 using System.Linq;
+using DotJEM.Json.Index.Manager.Snapshots.Zip;
 
 namespace DotJEM.Json.Index.Manager;
 public interface IStorageHost
@@ -27,7 +28,7 @@ public class StorageHost : IStorageHost
     public StorageHost(IStorageContext storage, IStorageIndex index, ITaskScheduler scheduler)
     {
         this.storage = new StorageManager(storage, scheduler);
-        this.index = new IndexManager(this.storage, new IndexSnapshotManager(), new WriteContextFactory(index));
+        this.index = new IndexManager(this.storage, new IndexSnapshotManager(new ZipSnapshotStrategy("")), new WriteContextFactory(index));
 
     }
 

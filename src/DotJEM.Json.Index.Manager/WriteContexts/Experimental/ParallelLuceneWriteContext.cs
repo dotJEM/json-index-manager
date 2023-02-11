@@ -10,7 +10,7 @@ using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
-namespace DotJEM.Json.Index.Manager.WriteContext.Experimental;
+namespace DotJEM.Json.Index.Manager.WriteContexts.Experimental;
 
 internal class ParallelLuceneWriteContext : ILuceneWriteContext
 {
