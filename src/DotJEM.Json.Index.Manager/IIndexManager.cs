@@ -2,15 +2,17 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Runtime;
-using System.Runtime.InteropServices;
-using System.Threading;
+using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
+using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.WriteContexts;
+using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
+using DotJEM.TaskScheduler;
 
 namespace DotJEM.Json.Index.Manager;
 
@@ -22,21 +24,31 @@ public interface IWriteContextFactory
 public class WriteContextFactory : IWriteContextFactory
 {
     private readonly IStorageIndex index;
-    public WriteContextFactory(IStorageIndex index)
+    private readonly IWriteContextConfiguration configuration;
+
+    public WriteContextFactory(IStorageIndex index, IWriteContextConfiguration configuration = null)
     {
         this.index = index;
+        this.configuration = configuration ?? new DefaultWriteContextConfiguration();
     }
     public WriteContexts.ILuceneWriteContext Create()
-        => new SequentialLuceneWriteContext(index);
+        => new SequentialLuceneWriteContext(index, configuration.RamBufferSize);
 }
+
 
 public interface IIndexManager
 {
     IInfoStream InfoStream { get; }
+
+    Task RunAsync();
+    Task<bool> TakeSnapshotAsync();
 }
+
+
 
 public class IndexManager : IIndexManager
 {
+    private readonly IStorageManager storage;
     private readonly IIndexSnapshotManager snapshots;
     private readonly IIndexIngestProgressTracker tracker;
 
@@ -45,12 +57,19 @@ public class IndexManager : IIndexManager
 
     public IInfoStream InfoStream => infoStream;
 
+    public IndexManager(IStorageContext context, IStorageIndex index, ISnapshotStrategy snapshotStrategy,
+        IWebBackgroundTaskScheduler scheduler, IIndexManagerConfiguration configuration)
+      : this(new StorageManager(context, scheduler, configuration.StorageConfiguration),
+          new IndexSnapshotManager(index, snapshotStrategy),
+          new WriteContextFactory(index, configuration.WriterConfiguration))
+    { }
+
     public IndexManager(IStorageManager storage, IIndexSnapshotManager snapshots, IWriteContextFactory writeContextFactory)
     {
+        this.storage = storage;
         this.snapshots = snapshots;
         context = writeContextFactory.Create();
         storage.Observable.ForEachAsync(CaptureChange);
-
         storage.InfoStream.Forward(infoStream);
         snapshots.InfoStream.Forward(infoStream);
 
@@ -59,7 +78,37 @@ public class IndexManager : IIndexManager
         storage.Observable.Subscribe(tracker);
         snapshots.InfoStream.Subscribe(tracker);
 
+        tracker.InfoStream.ForEachAsync(CheckComplete);
         tracker.InfoStream.Forward(infoStream);
+    }
+
+    
+    private void CheckComplete(IInfoStreamEvent ise)
+    {
+        if (ise is not StorageIngestStateInfoStreamEvent evt)
+            return;
+
+        StorageIngestState state = evt.State;
+        StorageObserverEventType[] states = state.Areas
+            .Select(x => x.LastEvent)
+            .ToArray();
+
+        if (states.All(state => state is StorageObserverEventType.Updated or StorageObserverEventType.Initialized))
+        {
+            
+        }
+    }
+
+    public async Task RunAsync()
+    {
+        bool resturedFromSnapshot = await snapshots.RestoreSnapshotAsync();
+        await storage.RunAsync();
+    }
+
+    public async Task<bool> TakeSnapshotAsync()
+    {
+        StorageIngestState state = tracker.CurrentState;
+        return await snapshots.TakeSnapshotAsync(state);
     }
 
     private void CaptureChange(IStorageChange change)
@@ -93,23 +142,23 @@ public class IndexManager : IIndexManager
 public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>
 {
     IInfoStream InfoStream { get; }
+    StorageIngestState CurrentState { get; }
 }
 
 public class IndexIngestProgressTracker : IIndexIngestProgressTracker
 {
-    private readonly ConcurrentDictionary<string, IngestStateInfo> trackers = new();
+    //TODO: Along with the Todo later down, this should be changed so that we can compute the state quicker.
+    //      It's fine that data-in is guarded by a ConcurrentDictionary, but for data out it shouldn't matter.
+    private readonly ConcurrentDictionary<string, StorageAreaIngestStateTracker> trackers = new();
     private readonly IInfoStream<IndexManager> infoStream = new InfoStream<IndexManager>();
-
+    
     public IInfoStream InfoStream => infoStream;
-
+    public StorageIngestState CurrentState => new StorageIngestState(trackers.Select(kv => kv.Value.State).ToArray());
 
     public void OnNext(IStorageChange value)
     {
-        trackers.AddOrUpdate(value.Area,
-            _ => throw new InvalidDataException(),
-            (_, state) => state.UpdateState(value.Generation));
-
-        infoStream.WriteStorageIngestStateEvent(CreateState());
+        trackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));
+        PublishState();
     }
 
     public void OnNext(IInfoStreamEvent value)
@@ -119,78 +168,60 @@ public class IndexIngestProgressTracker : IIndexIngestProgressTracker
         switch (soe.EventType)
         {
             case StorageObserverEventType.Starting:
-                trackers.GetOrAdd(soe.Area, new IngestStateInfo(soe.EventType));
+                trackers.GetOrAdd(soe.Area, new StorageAreaIngestStateTracker(soe.Area, soe.EventType));
                 break;
             case StorageObserverEventType.Initializing:
-            case StorageObserverEventType.Initialized:
             case StorageObserverEventType.Updating:
+            case StorageObserverEventType.Initialized:
             case StorageObserverEventType.Updated:
-                trackers.AddOrUpdate(soe.Area, 
-                    _ => new IngestStateInfo(soe.EventType),
-                    (_, state) => state.UpdateState(soe.EventType)
-                );
-                break;
             case StorageObserverEventType.Stopped:
-                trackers.AddOrUpdate(soe.Area, 
-                    _ => new IngestStateInfo(soe.EventType),
-                    (_, state) => state.UpdateState(soe.EventType)
-                );
+            default:
+                trackers.AddOrUpdate(soe.Area, _ => new StorageAreaIngestStateTracker(soe.Area, soe.EventType), (_, state) => state.UpdateState(soe.EventType));
                 break;
         }
-
-        infoStream.WriteStorageIngestStateEvent(CreateState());
+        PublishState();
     }
 
-    private StorageIngestState CreateState()
+    // TODO: We are adding a number of computational cycles here on each single update, this should be improved as well.
+    //       So we don't have to do a loop on each turn, but later with that.
+    private void PublishState()
+        => infoStream.WriteStorageIngestStateEvent(CurrentState);
+
+    void IObserver<IInfoStreamEvent>.OnError(Exception error) { }
+    void IObserver<IInfoStreamEvent>.OnCompleted() { }
+    void IObserver<IStorageChange>.OnError(Exception error) { }
+    void IObserver<IStorageChange>.OnCompleted() { }
+
+    public class StorageAreaIngestStateTracker
     {
-        return new StorageIngestState(
-            trackers.Select(kv => new AreaIngestState(kv.Key, kv.Value.StartTime, kv.Value.Timer.Elapsed, kv.Value.Counter, kv.Value.GenerationInfo, kv.Value.State)).ToArray()
-        );
-    }
+        private readonly object padlock = new();
+        private readonly Stopwatch timer = Stopwatch.StartNew();
 
-    void IObserver<IInfoStreamEvent>.OnError(Exception error)
-    {
-    }
+        public StorageAreaIngestState State { get; private set; }
 
-    void IObserver<IInfoStreamEvent>.OnCompleted()
-    {
-    }
-
-    void IObserver<IStorageChange>.OnError(Exception error)
-    {
-    }
-
-    void IObserver<IStorageChange>.OnCompleted()
-    {
-    }
-
-    public class IngestStateInfo
-    {
-        public DateTime StartTime { get; } = DateTime.Now;
-        public Stopwatch Timer { get; } = Stopwatch.StartNew();
-
-        public long Counter { get; private set; }
-        public GenerationInfo GenerationInfo { get;  private set;}
-        public StorageObserverEventType State { get; private set; }
-
-        public IngestStateInfo(StorageObserverEventType state)
+        public StorageAreaIngestStateTracker(string area, StorageObserverEventType state)
         {
-            State = state;
+            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state);
         }
 
-        public IngestStateInfo UpdateState(StorageObserverEventType state)
+        public StorageAreaIngestStateTracker UpdateState(StorageObserverEventType state)
         {
             if(state is StorageObserverEventType.Initialized or StorageObserverEventType.Updated or StorageObserverEventType.Stopped)
-                Timer.Stop();
+                timer.Stop();
 
-            State = state;
+            lock (padlock)
+            {
+                State = State with { LastEvent = state, Duration = timer.Elapsed};
+            }
             return this;
         }
 
-        public IngestStateInfo UpdateState(GenerationInfo valueGeneration)
+        public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation)
         {
-            Counter++;
-            GenerationInfo = valueGeneration;
+            lock (padlock)
+            {
+                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
+            }
             return this;
         }
     }

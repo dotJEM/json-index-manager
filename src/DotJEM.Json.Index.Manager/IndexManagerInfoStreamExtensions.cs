@@ -20,7 +20,7 @@ public static class IndexManagerInfoStreamExtensions
     }
 }
 
-public record struct StorageIngestState(AreaIngestState[] Areas)
+public record struct StorageIngestState(StorageAreaIngestState[] Areas)
 {
     public DateTime StartTime => Areas.Min(x => x.StartTime);
     public TimeSpan Duration => Areas.Max(x => x.Duration);
@@ -39,11 +39,11 @@ public record struct StorageIngestState(AreaIngestState[] Areas)
     }
 }
 
-public record struct AreaIngestState(string Area, DateTime StartTime, TimeSpan Duration, long IngestedCount, GenerationInfo Generation, StorageObserverEventType State)
+public record struct StorageAreaIngestState(string Area, DateTime StartTime, TimeSpan Duration, long IngestedCount, GenerationInfo Generation, StorageObserverEventType LastEvent)
 {
     public override string ToString()
     {
-        return $" -> [{Duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / Duration.TotalSeconds:F} / sec) - {State}";
+        return $" -> [{Duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / Duration.TotalSeconds:F} / sec) - {LastEvent}";
     }
 }
 

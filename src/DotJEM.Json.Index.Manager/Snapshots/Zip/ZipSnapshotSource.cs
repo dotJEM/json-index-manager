@@ -21,6 +21,7 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
 
     private ZipSnapshotSource(string file)
     {
+        this.file = file;
         archive = ZipFile.Open(file, ZipArchiveMode.Read);
         using Stream metaStream = archive.GetEntry("metadata.json")?.Open();
         using JsonReader reader = new JsonTextReader(new StreamReader(metaStream));

@@ -21,7 +21,6 @@ public class LuceneZipFile : ILuceneFile
     {
         this.Name = fileName;
         this.archive = archive;
-        this.infoStream = infoStream;
     }
 
     public Stream Open()
@@ -66,7 +65,6 @@ public class LuceneZipFile : ILuceneFile
         {
             this.inner = inner;
             this.file = file;
-            this.info = info;
             info.WriteFileOpenEvent(file, "");
         }
 

@@ -1,6 +1,6 @@
 ﻿namespace DotJEM.TaskScheduler;
 
-public interface ITaskScheduler
+public interface IWebBackgroundTaskScheduler
 {
     IScheduledTask Schedule(IScheduledTask task);
     void Stop();

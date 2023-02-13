@@ -5,10 +5,10 @@ using DotJEM.Diagnostics.Streams;
 
 namespace DotJEM.TaskScheduler;
 
-public class TaskScheduler : ITaskScheduler
+public class WebBackgroundTaskScheduler : IWebBackgroundTaskScheduler
 {
     private readonly ConcurrentDictionary<Guid, IScheduledTask> tasks = new();
-    private readonly IInfoStream<TaskScheduler> infoStream = new InfoStream<TaskScheduler>();
+    private readonly IInfoStream<WebBackgroundTaskScheduler> infoStream = new InfoStream<WebBackgroundTaskScheduler>();
 
     public IInfoStream InfoStream => infoStream;
 

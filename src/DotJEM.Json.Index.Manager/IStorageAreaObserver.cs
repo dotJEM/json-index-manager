@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
+using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.Json.Storage.Adapter;
@@ -16,10 +17,12 @@ public interface IStorageAreaObserver
     IForwarderObservable<IStorageChange> Observable { get; }
     Task RunAsync();
 }
+
 public class StorageAreaObserver : IStorageAreaObserver
 {
     private readonly IStorageArea area;
-    private readonly ITaskScheduler scheduler;
+    private readonly IWebBackgroundTaskScheduler scheduler;
+    private readonly IStorageAreaWatchConfiguration configuration;
     private readonly IStorageAreaLog log;
     private readonly ForwarderObservable<IStorageChange> observable = new();
 
@@ -31,17 +34,18 @@ public class StorageAreaObserver : IStorageAreaObserver
     public IInfoStream InfoStream => infoStream;
     public IForwarderObservable<IStorageChange> Observable => observable;
 
-    public StorageAreaObserver(IStorageArea area, ITaskScheduler scheduler)
+    public StorageAreaObserver(IStorageArea area, IWebBackgroundTaskScheduler scheduler, IStorageAreaWatchConfiguration configuration)
     {
         this.area = area;
         this.scheduler = scheduler;
+        this.configuration = configuration;
         this.log = area.Log;
     }
     
     public async Task RunAsync()
     {
         infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, area.Name, $"Ingest starting for area '{area.Name}'.");
-        task = scheduler.Schedule($"StorageAreaObserver:{area.Name}", _ => RunUpdateCheck(), "10sec");
+        task = scheduler.Schedule($"StorageAreaObserver:{area.Name}", _ => RunUpdateCheck(), configuration.Interval);
         task.InfoStream.Forward(infoStream);
         await task;
     }
@@ -123,7 +127,7 @@ public struct StorageChange : IStorageChange
     public string Area { get; }
     public JObject Entity { get; }
 
-    public StorageChange( string area, ChangeType type, JObject entity, GenerationInfo generationInfo)
+    public StorageChange(string area, ChangeType type, JObject entity, GenerationInfo generationInfo)
     {
         Generation = generationInfo;
         Type = type;

@@ -4,22 +4,21 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index;
-using DotJEM.Json.Index.Analyzation;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
+using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
+using DotJEM.TaskScheduler;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Newtonsoft.Json;
@@ -43,24 +42,51 @@ index.Configuration.SetScoreField("$score");
 index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
-IStorageManager storageManager = new StorageManager(storage, new DotJEM.TaskScheduler.TaskScheduler());
-IIndexManager manager = new IndexManager(storageManager, new IndexSnapshotManager(new ZipSnapshotStrategy("")), new WriteContextFactory(index));
 
+//IStorageManager storageManager = new StorageManager(
+//    storage,
+//    new WebBackgroundTaskScheduler(),
+//    new DefaultStorageWatchConfiguration());
+//IIndexManager manager = new IndexManager(
+//    storageManager, 
+//    new IndexSnapshotManager(new ZipSnapshotStrategy(".\\app_data\\snapshots")),
+//    new WriteContextFactory(index));
+
+IIndexManager indexManager = new IndexManager(
+    storage,
+    index,
+    new ZipSnapshotStrategy(".\\app_data\\snapshots"),
+    new WebBackgroundTaskScheduler(),
+    new DefaultIndexManagerConfiguration()
+);
 Task run = Task.WhenAll(
     //storageManager.Observable.ForEachAsync(Reporter.Capture),
     //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    Task.Run(storageManager.RunAsync)
+    indexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    Task.Run(indexManager.RunAsync)
 );
 
 
 while (true)
 {
-    switch (Console.ReadLine())
+    switch (Console.ReadLine()?.ToUpper().FirstOrDefault())
     {
-        case "EXIT":
+        case 'E':
+        case 'Q':
             goto EXIT;
+
+        case 'S':
+            await indexManager.TakeSnapshotAsync();
+            break;
+
+        case 'C':
+            index.Commit();
+            break;
+
+        case 'O':
+            index.Optimize();
+            break;
 
         default:
             Reporter.Report();
@@ -118,32 +144,8 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 
 public static class Reporter
 {
-    private static Stopwatch watch = Stopwatch.StartNew();
-    private static ConcurrentDictionary<string, long> counters = new();
-    private static ConcurrentDictionary<string, GenerationInfo> generations = new();
-
-    public static void Increment(string counter, long currentGen, long latestGen)
-    {
-        long count = counters.AddOrUpdate(counter, _ => 1, (_, v) => v + 1);
-        
-        if (count % 25000 != 0) return;
-        Console.WriteLine($"{counter} [{watch.Elapsed}] {currentGen:N0} of {latestGen:N0} changes processed, {count:N0} objects indexed. ({count / watch.Elapsed.TotalSeconds:F} / sec)");
-    }
-
-    public static void Report()
-    {
-        Console.WriteLine($"COUNTERS:");
-        foreach (var kv in counters)
-        {
-            var counter = kv.Key;
-            var count = kv.Value;
-            var gen = generations.GetOrAdd(counter, _ => new GenerationInfo());
-            var currentGen = gen.Current;
-            var latestGen = gen.Latest;
-            Console.WriteLine($"{counter} [{watch.Elapsed}] {currentGen:N0} of {latestGen:N0} changes processed, {count:N0} objects indexed. ({count / watch.Elapsed.TotalSeconds:F} / sec)");
-        }
-    }
-
+    private static StorageIngestState lastState;
+ 
     public static void CaptureInfo(IInfoStreamEvent evt)
     {
         switch (evt)
@@ -164,20 +166,15 @@ public static class Reporter
                 break;
 
             case StorageIngestStateInfoStreamEvent ievt :
-                if(ievt.State.IngestedCount % 10000 == 0)
-                    Console.WriteLine(ievt.State);
+                lastState = ievt.State;
                 break;
         }
     }
 
-    public static void Capture(IStorageChange change)
+
+    public static void Report()
     {
-        generations.AddOrUpdate(change.Area, 
-            _ => change.Generation,
-            (_, _) => change.Generation);
-        GenerationInfo sum = generations.Values.Aggregate((x, y) => x + y);
-        Increment("LOADED", sum.Current, sum.Latest);
-        Increment(change.Area, change.Generation.Current, change.Generation.Latest);
+        Console.WriteLine(lastState);
+
     }
-    
 }

@@ -24,7 +24,7 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
     private readonly IndexWriter writer;
     private readonly double originalBufferSize;
 
-    public SequentialLuceneWriteContext(IStorageIndex index)
+    public SequentialLuceneWriteContext(IStorageIndex index, double ramBufferSize)
     {
         this.index = index;
         this.writer = index.Storage.Writer;
@@ -32,7 +32,7 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         this.resolver = index.Configuration.IdentityResolver;
 
         originalBufferSize = writer.GetRAMBufferSizeMB();
-        writer.SetRAMBufferSizeMB(1000);
+        writer.SetRAMBufferSizeMB(ramBufferSize);
     }
 
     public void Write(JObject entity)
