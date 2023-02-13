@@ -43,7 +43,6 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         //if(paused || maxSnapshots <= 0 || strategy == null) return false;
             
         JObject json = JObject.FromObject(state);
-
         //JObject generations = storage.AreaInfos
         //    .Aggregate(new JObject(), (x, info) => {
         //        x[info.Name] = storage.Area(info.Name).Log.CurrentGeneration;
@@ -73,34 +72,33 @@ public class IndexSnapshotManager : IIndexSnapshotManager
     {
         //if(maxSnapshots <= 0 || strategy == null) return false;
 
-        //int offset = 0;
-        //while (true)
-        //{
-        //    try
-        //    {
-        //        ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
-        //        if (source == null)
-        //            return false;
+        int offset = 0;
+        while (true)
+        {
+            try
+            {
+                ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
+                if (source == null)
+                    return false;
 
-        //        if (!source.Verify())
-        //        {
-        //            source.Delete();
-        //            continue;
-        //        }
+                if (!source.Verify())
+                {
+                    source.Delete();
+                    continue;
+                }
 
-        //        index.Storage.Restore(source);
-        //        if (source.Metadata["storageGenerations"] is not JObject metadata) continue;
+                index.Storage.Restore(source);
+                if (source.Metadata["storageGenerations"] is not JObject metadata) continue;
                     
-        //        foreach (JProperty property in metadata.Properties())
-        //            storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
+                //foreach (JProperty property in metadata.Properties())
+                //    storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
 
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        InfoStream.WriteError("Failed to restore snapshot.", ex);
-        //    }
-        //}
-        throw new NotImplementedException("");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                infoStream.WriteError("Failed to restore snapshot.", ex);
+            }
+        }
     }
 }

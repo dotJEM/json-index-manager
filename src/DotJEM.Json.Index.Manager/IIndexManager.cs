@@ -35,7 +35,6 @@ public class WriteContextFactory : IWriteContextFactory
         => new SequentialLuceneWriteContext(index, configuration.RamBufferSize);
 }
 
-
 public interface IIndexManager
 {
     IInfoStream InfoStream { get; }
