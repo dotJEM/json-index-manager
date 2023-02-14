@@ -110,6 +110,11 @@ public class IndexManager : IIndexManager
         return await snapshots.TakeSnapshotAsync(state);
     }
 
+    public async Task<bool> RestoreSnapshotAsync()
+    {
+        return await RestoreSnapshotAsync();
+    }
+
     private void CaptureChange(IStorageChange change)
     {
         try

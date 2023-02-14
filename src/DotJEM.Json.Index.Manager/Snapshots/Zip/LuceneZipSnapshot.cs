@@ -28,8 +28,7 @@ public class LuceneZipSnapshot : ISnapshot
 
         Files = new List<ILuceneFile>();
         if (metadata["files"] is JArray arr)
-            Files = arr
-                .Select(fileName => CreateLuceneZipFile((string)fileName, archive));
+            Files = arr.Select(fileName => CreateLuceneZipFile((string)fileName, archive));
         SegmentsFile = CreateLuceneZipFile((string)metadata["segmentsFile"], archive) ;
         SegmentsGenFile = CreateLuceneZipFile((string)metadata["segmentsGenFile"], archive);
         Generation = (long)metadata["generation"];

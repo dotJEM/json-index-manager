@@ -47,6 +47,11 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
         if (segmentsFile is null)
             return false;
 
+        
+        string segmentsGenFile = (string)Metadata["segmentsGenFile"];
+        if (segmentsGenFile is null)
+            return false;
+
         string[] files = Metadata["files"]?.ToObject<string[]>();
         if(files is null) 
             return false;

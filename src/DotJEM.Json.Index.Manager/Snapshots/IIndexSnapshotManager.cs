@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Storage.Snapshot;
@@ -88,8 +89,13 @@ public class IndexSnapshotManager : IIndexSnapshotManager
                 }
 
                 index.Storage.Restore(source);
-                if (source.Metadata["storageGenerations"] is not JObject metadata) continue;
+                if (source.Metadata["storageGenerations"] is not JObject areas) continue;
+                if (areas["Areas"] is not JArray metadata) continue;
+
+                foreach (JObject area in metadata.OfType<JObject>())
+                {
                     
+                }
                 //foreach (JProperty property in metadata.Properties())
                 //    storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
 

@@ -11,7 +11,7 @@ public class ZipSnapshotWriter : ISnapshotWriter
 {
     private readonly ZipArchive archive;
     private readonly JObject metadata;
-
+    
     public ZipSnapshotWriter(JObject metadata, string file)
     {
         if (metadata["files"] is not JArray)
