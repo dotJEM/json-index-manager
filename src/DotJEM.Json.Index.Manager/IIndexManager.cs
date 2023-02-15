@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Snapshots;
+using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.WriteContexts;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
@@ -67,6 +68,7 @@ public class IndexManager : IIndexManager
     {
         this.storage = storage;
         this.snapshots = snapshots;
+
         context = writeContextFactory.Create();
         storage.Observable.ForEachAsync(CaptureChange);
         storage.InfoStream.Forward(infoStream);
@@ -143,90 +145,9 @@ public class IndexManager : IIndexManager
     }
 }
 
-public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>
-{
-    IInfoStream InfoStream { get; }
-    StorageIngestState CurrentState { get; }
-}
 
-public class IndexIngestProgressTracker : IIndexIngestProgressTracker
+public class SnapshotStateManager
 {
-    //TODO: Along with the Todo later down, this should be changed so that we can compute the state quicker.
-    //      It's fine that data-in is guarded by a ConcurrentDictionary, but for data out it shouldn't matter.
-    private readonly ConcurrentDictionary<string, StorageAreaIngestStateTracker> trackers = new();
-    private readonly IInfoStream<IndexManager> infoStream = new InfoStream<IndexManager>();
     
-    public IInfoStream InfoStream => infoStream;
-    public StorageIngestState CurrentState => new StorageIngestState(trackers.Select(kv => kv.Value.State).ToArray());
-
-    public void OnNext(IStorageChange value)
-    {
-        trackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));
-        PublishState();
-    }
-
-    public void OnNext(IInfoStreamEvent value)
-    {
-        if (value is not StorageObserverInfoStreamEvent soe) return;
-        
-        switch (soe.EventType)
-        {
-            case StorageObserverEventType.Starting:
-                trackers.GetOrAdd(soe.Area, new StorageAreaIngestStateTracker(soe.Area, soe.EventType));
-                break;
-            case StorageObserverEventType.Initializing:
-            case StorageObserverEventType.Updating:
-            case StorageObserverEventType.Initialized:
-            case StorageObserverEventType.Updated:
-            case StorageObserverEventType.Stopped:
-            default:
-                trackers.AddOrUpdate(soe.Area, _ => new StorageAreaIngestStateTracker(soe.Area, soe.EventType), (_, state) => state.UpdateState(soe.EventType));
-                break;
-        }
-        PublishState();
-    }
-
-    // TODO: We are adding a number of computational cycles here on each single update, this should be improved as well.
-    //       So we don't have to do a loop on each turn, but later with that.
-    private void PublishState()
-        => infoStream.WriteStorageIngestStateEvent(CurrentState);
-
-    void IObserver<IInfoStreamEvent>.OnError(Exception error) { }
-    void IObserver<IInfoStreamEvent>.OnCompleted() { }
-    void IObserver<IStorageChange>.OnError(Exception error) { }
-    void IObserver<IStorageChange>.OnCompleted() { }
-
-    public class StorageAreaIngestStateTracker
-    {
-        private readonly object padlock = new();
-        private readonly Stopwatch timer = Stopwatch.StartNew();
-
-        public StorageAreaIngestState State { get; private set; }
-
-        public StorageAreaIngestStateTracker(string area, StorageObserverEventType state)
-        {
-            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state);
-        }
-
-        public StorageAreaIngestStateTracker UpdateState(StorageObserverEventType state)
-        {
-            if(state is StorageObserverEventType.Initialized or StorageObserverEventType.Updated or StorageObserverEventType.Stopped)
-                timer.Stop();
-
-            lock (padlock)
-            {
-                State = State with { LastEvent = state, Duration = timer.Elapsed};
-            }
-            return this;
-        }
-
-        public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation)
-        {
-            lock (padlock)
-            {
-                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
-            }
-            return this;
-        }
-    }
 }
+
