@@ -156,7 +156,7 @@ public static class Reporter
                     case StorageObserverEventType.Starting:
                     case StorageObserverEventType.Initializing:
                     case StorageObserverEventType.Initialized:
-                        Console.WriteLine(evt);
+                        Console.WriteLine(evt.Message);
                         break;
                     case StorageObserverEventType.Updating:
                     case StorageObserverEventType.Updated:
@@ -167,6 +167,10 @@ public static class Reporter
 
             case StorageIngestStateInfoStreamEvent ievt :
                 lastState = ievt.State;
+                break;
+
+            default:
+                Console.WriteLine(evt.Message);
                 break;
         }
     }

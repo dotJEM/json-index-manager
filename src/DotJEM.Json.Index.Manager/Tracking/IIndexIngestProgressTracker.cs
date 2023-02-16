@@ -10,7 +10,7 @@ using DotJEM.ObservableExt;
 namespace DotJEM.Json.Index.Manager.Tracking;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity -> Just dictates implementation must be explicit which is OK.
-public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>
+public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>, IObservable<StorageIngestState>
 {
     IInfoStream InfoStream { get; }
     StorageIngestState CurrentState { get; }

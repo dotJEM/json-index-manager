@@ -5,6 +5,8 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Manager.Configuration;
@@ -79,31 +81,26 @@ public class IndexManager : IIndexManager
         storage.Observable.Subscribe(tracker);
         snapshots.InfoStream.Subscribe(tracker);
 
-        tracker.InfoStream.ForEachAsync(CheckComplete);
         tracker.InfoStream.Forward(infoStream);
-    }
-
-    
-    private void CheckComplete(IInfoStreamEvent ise)
-    {
-        if (ise is not StorageIngestStateInfoStreamEvent evt)
-            return;
-
-        StorageIngestState state = evt.State;
-        StorageObserverEventType[] states = state.Areas
-            .Select(x => x.LastEvent)
-            .ToArray();
-
-        if (states.All(state => state is StorageObserverEventType.Updated or StorageObserverEventType.Initialized))
-        {
-            
-        }
+        tracker.ForEachAsync(state => infoStream.WriteStorageIngestStateEvent(state));
     }
 
     public async Task RunAsync()
     {
-        bool resturedFromSnapshot = await snapshots.RestoreSnapshotAsync();
-        await storage.RunAsync();
+        bool restoredSnapshotAsync = await snapshots.RestoreSnapshotAsync();
+        infoStream.WriteInfo($"Index restored from a snapshot: {restoredSnapshotAsync}.");
+
+        Task snapshot = Task.Run(async () =>
+        {
+            await Initialization.WhenInitializationComplete(tracker).ConfigureAwait(false);
+            if (!restoredSnapshotAsync)
+            {
+                infoStream.WriteInfo("Taking snapshot after initialization.");
+                await TakeSnapshotAsync().ConfigureAwait(false);
+            }
+        });
+        Task fetcher = storage.RunAsync();
+        await Task.WhenAll(snapshot, fetcher).ConfigureAwait(false);
     }
 
     public async Task<bool> TakeSnapshotAsync()
@@ -146,8 +143,24 @@ public class IndexManager : IIndexManager
 }
 
 
-public class SnapshotStateManager
+public class Initialization
 {
-    
+
+    public static Task WhenInitializationComplete(IIndexIngestProgressTracker tracker)
+    {
+        TaskCompletionSource<bool> completionSource = new ();
+
+        tracker.ForEachAsync(state => {
+            StorageObserverEventType[] states = state.Areas
+                .Select(x => x.LastEvent)
+                .ToArray();
+            if (states.All(state => state is StorageObserverEventType.Updated or StorageObserverEventType.Initialized))
+                completionSource.SetResult(true);
+            
+        }, CancellationToken.None);
+
+        return completionSource.Task;
+    }
+
 }
 
