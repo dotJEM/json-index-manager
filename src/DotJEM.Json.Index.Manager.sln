@@ -9,11 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Debugging", "Debugging\Debu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Legacy", "Legacy\Legacy.csproj", "{6162F198-5C2B-430E-94B6-5CE349063B5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Diagnostics.Streams", "DotJEM.Diagnostics.Streams\DotJEM.Diagnostics.Streams.csproj", "{33E83F67-BE75-46B9-81ED-865B75D34AA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.Diagnostics.Streams", "DotJEM.Diagnostics.Streams\DotJEM.Diagnostics.Streams.csproj", "{33E83F67-BE75-46B9-81ED-865B75D34AA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.ObservableExt", "DotJEM.ObservableExt\DotJEM.ObservableExt.csproj", "{0C04FDE3-A2DD-4D8F-AFD8-AA2265D7AFD6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.ObservableExt", "DotJEM.ObservableExt\DotJEM.ObservableExt.csproj", "{0C04FDE3-A2DD-4D8F-AFD8-AA2265D7AFD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.TaskScheduler", "DotJEM.TaskScheduler\DotJEM.TaskScheduler.csproj", "{67FB478F-3145-4505-AF5F-2372A11E1976}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.TaskScheduler", "DotJEM.TaskScheduler\DotJEM.TaskScheduler.csproj", "{67FB478F-3145-4505-AF5F-2372A11E1976}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Index", "DotJEM.Json.Index\DotJEM.Json.Index.csproj", "{1C15E39B-91E7-445D-B5C4-C6DC4E965109}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{67FB478F-3145-4505-AF5F-2372A11E1976}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67FB478F-3145-4505-AF5F-2372A11E1976}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67FB478F-3145-4505-AF5F-2372A11E1976}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C15E39B-91E7-445D-B5C4-C6DC4E965109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C15E39B-91E7-445D-B5C4-C6DC4E965109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C15E39B-91E7-445D-B5C4-C6DC4E965109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C15E39B-91E7-445D-B5C4-C6DC4E965109}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

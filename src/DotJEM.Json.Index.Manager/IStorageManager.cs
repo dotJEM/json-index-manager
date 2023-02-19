@@ -16,6 +16,7 @@ public interface IStorageManager
     IInfoStream InfoStream { get; }
     IForwarderObservable<IStorageChange> Observable { get; }
     Task RunAsync();
+    void Generation(string area, long generation);
 }
 
 public class StorageManager : IStorageManager

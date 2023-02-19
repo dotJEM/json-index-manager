@@ -12,7 +12,13 @@ public interface IIndexSnapshotManager
     IInfoStream InfoStream { get; }
 
     Task<bool> TakeSnapshotAsync(StorageIngestState state);
-    Task<bool> RestoreSnapshotAsync();
+    Task<RestoreSnapshotResult> RestoreSnapshotAsync();
+}
+
+public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, StorageIngestState State)
+{
+    public bool RestoredFromSnapshot { get; } = RestoredFromSnapshot;
+    public StorageIngestState State { get; } = State;
 }
 
 public class IndexSnapshotManager : IIndexSnapshotManager
@@ -34,9 +40,9 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         return Task.Run(() => TakeSnapshot(state));
     }
 
-    public Task<bool> RestoreSnapshotAsync()
+    public Task<RestoreSnapshotResult> RestoreSnapshotAsync()
     {
-        return Task.FromResult(false);
+        return Task.Run(RestoreSnapshot);
     }
 
     public bool TakeSnapshot(StorageIngestState state)
@@ -69,10 +75,8 @@ public class IndexSnapshotManager : IIndexSnapshotManager
         }
     }
 
-    public bool RestoreSnapshot()
+    public RestoreSnapshotResult RestoreSnapshot()
     {
-        //if(maxSnapshots <= 0 || strategy == null) return false;
-
         int offset = 0;
         while (true)
         {
@@ -80,7 +84,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
             {
                 ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
                 if (source == null)
-                    return false;
+                    return new RestoreSnapshotResult(false, default);
 
                 if (!source.Verify())
                 {
@@ -88,22 +92,19 @@ public class IndexSnapshotManager : IIndexSnapshotManager
                     continue;
                 }
 
-                index.Storage.Restore(source);
-                if (source.Metadata["storageGenerations"] is not JObject areas) continue;
-                if (areas["Areas"] is not JArray metadata) continue;
+                bool restored = index.Storage.Restore(source);
+                if (source.Metadata["storageGenerations"] is not JObject generations) continue;
+                if (generations["Areas"] is not JArray areas) continue;
 
-                foreach (JObject area in metadata.OfType<JObject>())
-                {
-                    
-                }
-                //foreach (JProperty property in metadata.Properties())
-                //    storage.Area(property.Name).Log.Get(property.Value.ToObject<long>(), count: 0);
+                return new RestoreSnapshotResult(restored, new StorageIngestState(
+                    areas.ToObject<StorageAreaIngestState[]>()
+                ));
 
-                return true;
             }
             catch (Exception ex)
             {
                 infoStream.WriteError("Failed to restore snapshot.", ex);
+                    return new RestoreSnapshotResult(false, default);
             }
         }
     }

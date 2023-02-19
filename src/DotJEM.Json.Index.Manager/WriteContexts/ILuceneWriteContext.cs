@@ -35,11 +35,15 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         writer.SetRAMBufferSizeMB(ramBufferSize);
     }
 
+    private long counter = 0;
+
     public void Write(JObject entity)
     {
         Term term = resolver.CreateTerm(entity);
         Document doc = mapper.Create(entity);
         writer.UpdateDocument(term, doc);
+        counter++;
+        if(counter % 100000 == 0) writer.Commit();
     }
 
 
@@ -47,6 +51,10 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
     {
         Document doc = mapper.Create(entity);
         writer.AddDocument(doc);
+        counter++;
+        if(counter % 100000 == 0) writer.Commit();
+
+
     }
 
     public void Delete(JObject entity)
@@ -63,6 +71,26 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
     public void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes)
     {
         writer.Flush(triggerMerge, flushDocStores, flushDeletes);
+    }
+
+    public void Optimize()
+    {
+        writer.Optimize();
+    }
+
+    public void Optimize(int maxNumSegments)
+    {
+        writer.Optimize(maxNumSegments);
+    }
+
+    public void ExpungeDeletes()
+    {
+        writer.ExpungeDeletes();
+    }
+
+    public void MaybeMerge()
+    {
+        writer.MaybeMerge();
     }
 
     public void Dispose()
