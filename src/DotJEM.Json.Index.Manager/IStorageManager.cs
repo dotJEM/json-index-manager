@@ -46,7 +46,6 @@ public class StorageManager : IStorageManager
 
     public async Task RunAsync()
     {
-
         await Task.WhenAll(
             observers.Values.Select(async observer => await observer.RunAsync().ConfigureAwait(false))
         ).ConfigureAwait(false);

@@ -63,6 +63,7 @@ public class StorageAreaObserver : IStorageAreaObserver
     public void UpdateGeneration(long value)
     {
         this.generation = value;
+        this.initialized = true;
     }
 
     public void RunUpdateCheck()

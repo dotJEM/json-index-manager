@@ -87,15 +87,15 @@ public class IndexManager : IIndexManager
 
     public async Task RunAsync()
     {
-        RestoreSnapshotResult restoredSnapshotAsync = await snapshots.RestoreSnapshotAsync();
-        infoStream.WriteInfo($"Index restored from a snapshot: {restoredSnapshotAsync.RestoredFromSnapshot}.");
+        bool restoredFromSnapshot = await RestoreSnapshotAsync();
+        infoStream.WriteInfo($"Index restored from a snapshot: {restoredFromSnapshot}.");
 
 
 
         Task snapshot = Task.Run(async () =>
         {
             await Initialization.WhenInitializationComplete(tracker).ConfigureAwait(false);
-            if (!restoredSnapshotAsync.RestoredFromSnapshot)
+            if (!restoredFromSnapshot)
             {
                 infoStream.WriteInfo("Taking snapshot after initialization.");
                 await TakeSnapshotAsync().ConfigureAwait(false);
