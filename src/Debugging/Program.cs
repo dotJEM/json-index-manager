@@ -52,6 +52,9 @@ index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 //    new IndexSnapshotManager(new ZipSnapshotStrategy(".\\app_data\\snapshots")),
 //    new WriteContextFactory(index));
 
+Directory.Delete(".\\app_data\\index", true);
+Directory.CreateDirectory(".\\app_data\\index");
+
 IIndexManager indexManager = new IndexManager(
     storage,
     index,

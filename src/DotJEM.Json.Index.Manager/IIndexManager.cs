@@ -113,7 +113,13 @@ public class IndexManager : IIndexManager
 
     public async Task<bool> RestoreSnapshotAsync()
     {
-        return await await snapshots.RestoreSnapshotAsync();
+        RestoreSnapshotResult restoreResult = await snapshots.RestoreSnapshotAsync();
+        foreach (StorageAreaIngestState state in restoreResult.State.Areas)
+        {
+            storage.UpdateGeneration(state.Area, state.Generation.Current);
+        }
+
+        return restoreResult.RestoredFromSnapshot;
     }
 
     private void CaptureChange(IStorageChange change)
@@ -133,8 +139,6 @@ public class IndexManager : IIndexManager
                     break;
                 case ChangeType.Faulty:
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
         }
         catch (Exception ex)

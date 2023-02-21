@@ -27,7 +27,7 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
     public ISnapshotSourceWithMetadata CreateSource(int offset)
     {
         string[] files = GetSnapshots();
-        ISnapshotSourceWithMetadata source= files.Length > offset ? ZipSnapshotSource.Open(files[offset]) : null;
+        ISnapshotSourceWithMetadata source = files.Length > offset ? ZipSnapshotSource.Open(files[offset]) : null;
         source?.InfoStream.Forward(InfoStream);
         return source;
     }

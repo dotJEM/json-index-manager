@@ -33,6 +33,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
     {
         this.index = index;
         this.strategy = snapshotStrategy;
+        this.strategy.InfoStream.Forward(infoStream);
     }
 
     public Task<bool> TakeSnapshotAsync(StorageIngestState state)
@@ -47,18 +48,11 @@ public class IndexSnapshotManager : IIndexSnapshotManager
 
     public bool TakeSnapshot(StorageIngestState state)
     {
-        //if(paused || maxSnapshots <= 0 || strategy == null) return false;
-            
         JObject json = JObject.FromObject(state);
-        //JObject generations = storage.AreaInfos
-        //    .Aggregate(new JObject(), (x, info) => {
-        //        x[info.Name] = storage.Area(info.Name).Log.CurrentGeneration;
-        //        return x;
-        //    });
-
         try
         {
             ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = json });
+            
             index.Commit();
             index.Storage.Snapshot(target);
             infoStream.WriteInfo($"Created snapshot");
@@ -84,14 +78,19 @@ public class IndexSnapshotManager : IIndexSnapshotManager
             {
                 ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
                 if (source == null)
+                {
+                    infoStream.WriteInfo($"No snapshots found to restore");
                     return new RestoreSnapshotResult(false, default);
+                }
 
                 if (!source.Verify())
                 {
+                    infoStream.WriteWarning($"Deleting corrupt snapshot {source.Name}.");
                     source.Delete();
                     continue;
                 }
 
+                infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
                 bool restored = index.Storage.Restore(source);
                 if (source.Metadata["storageGenerations"] is not JObject generations) continue;
                 if (generations["Areas"] is not JArray areas) continue;

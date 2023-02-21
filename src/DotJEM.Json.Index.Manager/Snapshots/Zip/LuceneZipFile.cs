@@ -25,7 +25,8 @@ public class LuceneZipFile : ILuceneFile
 
     public Stream Open()
     {
-        var wrapper = new ZipStreamWrapper(archive.GetEntry(Name)?.Open(), this);
+        infoStream.WriteFileOpenEvent(this, $"Restoring file {Name}.");
+        ZipStreamWrapper wrapper = new ZipStreamWrapper(archive.GetEntry(Name)?.Open(), this);
         wrapper.InfoStream.Forward(infoStream);
         return wrapper;
     }
@@ -65,17 +66,17 @@ public class LuceneZipFile : ILuceneFile
         {
             this.inner = inner;
             this.file = file;
-            info.WriteFileOpenEvent(file, "");
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
             inner.Dispose();
-            info.WriteFileCloseEvent(file, "");
+            info.WriteFileOpenEvent(file, $"File {file.Name} restored.");
         }
         public override void Close()
         {
+
             inner.Close();
             base.Close();
         }

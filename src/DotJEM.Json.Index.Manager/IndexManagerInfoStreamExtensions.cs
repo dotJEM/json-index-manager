@@ -39,7 +39,13 @@ public record struct StorageIngestState(StorageAreaIngestState[] Areas)
     }
 }
 
-public record struct StorageAreaIngestState(string Area, DateTime StartTime, TimeSpan Duration, long IngestedCount, GenerationInfo Generation, StorageObserverEventType LastEvent)
+public record struct StorageAreaIngestState(
+    string Area, 
+    DateTime StartTime, 
+    TimeSpan Duration,
+    long IngestedCount,
+    GenerationInfo Generation,
+    StorageObserverEventType LastEvent)
 {
     public override string ToString()
     {

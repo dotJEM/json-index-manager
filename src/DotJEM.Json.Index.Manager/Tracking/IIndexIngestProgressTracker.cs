@@ -29,6 +29,8 @@ public class IndexIngestProgressTracker : ForwarderObservable<StorageIngestState
     //       So we don't have to do a loop on each turn, but later with that.
     public StorageIngestState CurrentState => new (trackers.Select(kv => kv.Value.State).ToArray());
 
+
+
     public void OnNext(IStorageChange value)
     {
         trackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));

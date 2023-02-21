@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Manager.Configuration;
@@ -16,13 +17,12 @@ public interface IStorageManager
     IInfoStream InfoStream { get; }
     IForwarderObservable<IStorageChange> Observable { get; }
     Task RunAsync();
-    void Generation(string area, long generation);
+    void UpdateGeneration(string area, long generation);
 }
 
 public class StorageManager : IStorageManager
 {
-    private readonly IStorageAreaObserverFactory factory;
-
+    private readonly Dictionary<string, IStorageAreaObserver> observers;
     private readonly ForwarderObservable<IStorageChange> observable = new ();
     private readonly InfoStream<StorageManager> infoStream = new ();
 
@@ -36,17 +36,27 @@ public class StorageManager : IStorageManager
 
     public StorageManager(IStorageAreaObserverFactory factory)
     {
-        this.factory = factory;
+        this.observers = factory.CreateAll()
+            .Select(observer => {
+                observer.Observable.Forward(observable);
+                observer.InfoStream.Forward(infoStream);
+                return observer;
+            }).ToDictionary(x => x.AreaName);
     }
 
     public async Task RunAsync()
     {
+
         await Task.WhenAll(
-            factory.CreateAll().Select(async observer => {
-                observer.Observable.Forward(observable);
-                observer.InfoStream.Forward(infoStream);
-                await observer.RunAsync().ConfigureAwait(false);
-            })
+            observers.Values.Select(async observer => await observer.RunAsync().ConfigureAwait(false))
         ).ConfigureAwait(false);
+    }
+
+    public void UpdateGeneration(string area, long generation)
+    {
+        if (!observers.TryGetValue(area, out IStorageAreaObserver observer))
+            return; // TODO?
+
+        observer.UpdateGeneration(generation);
     }
 }

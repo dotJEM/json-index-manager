@@ -6,6 +6,8 @@ namespace DotJEM.Json.Index.Manager.Snapshots;
 
 public interface ISnapshotSourceWithMetadata : ISnapshotSource
 {
+    string Name { get; }
+
     IInfoStream InfoStream { get; }
 
     JObject Metadata { get; }

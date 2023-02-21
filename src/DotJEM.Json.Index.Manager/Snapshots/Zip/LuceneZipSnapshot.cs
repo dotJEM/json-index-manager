@@ -22,7 +22,6 @@ public class LuceneZipSnapshot : ISnapshot
 
     public LuceneZipSnapshot(ZipArchive archive, JObject metadata)
     {
-     
         this.archive = archive;
         this.metadata = metadata;
 

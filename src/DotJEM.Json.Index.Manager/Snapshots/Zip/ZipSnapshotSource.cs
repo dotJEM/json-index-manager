@@ -19,9 +19,12 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
 
     public JObject Metadata { get; }
 
+    public string Name { get; }
+
     private ZipSnapshotSource(string file)
     {
         this.file = file;
+        this.Name = Path.GetFileName(file);
         archive = ZipFile.Open(file, ZipArchiveMode.Read);
         using Stream metaStream = archive.GetEntry("metadata.json")?.Open();
         using JsonReader reader = new JsonTextReader(new StreamReader(metaStream));
@@ -81,7 +84,9 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
 
     public ISnapshot Open()
     {
-        return new LuceneZipSnapshot(archive, Metadata);
+        LuceneZipSnapshot snapshot =  new LuceneZipSnapshot(archive, Metadata);
+        snapshot.InfoStream.Forward(infoStream);
+        return snapshot;
     }
 
 }
@@ -92,14 +97,15 @@ public class CorruptZipSnapshotSource : ISnapshotSourceWithMetadata
     private readonly IInfoStream<ZipSnapshotSource> infoStream = new InfoStream<ZipSnapshotSource>();
 
     public IInfoStream InfoStream => infoStream;
+    public string Name { get; }
 
     public JObject Metadata { get; } = new ();
 
     public CorruptZipSnapshotSource(string file)
     {
         this.file = file;
+        this.Name = Path.GetFileName(file);
     }
-
 
     public ISnapshot Open()
     {

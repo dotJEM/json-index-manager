@@ -13,9 +13,11 @@ namespace DotJEM.Json.Index.Manager;
 
 public interface IStorageAreaObserver
 {
+    string AreaName { get; }
     IInfoStream InfoStream { get; }
     IForwarderObservable<IStorageChange> Observable { get; }
     Task RunAsync();
+    void UpdateGeneration(long generation);
 }
 
 public class StorageAreaObserver : IStorageAreaObserver
@@ -31,6 +33,7 @@ public class StorageAreaObserver : IStorageAreaObserver
     private bool initialized = false;
     private readonly IInfoStream<StorageAreaObserver> infoStream = new InfoStream<StorageAreaObserver>();
 
+    public string AreaName => area.Name;
     public IInfoStream InfoStream => infoStream;
     public IForwarderObservable<IStorageChange> Observable => observable;
 
@@ -57,9 +60,9 @@ public class StorageAreaObserver : IStorageAreaObserver
         infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, area.Name, $"Initializing for area '{area.Name}'.");
     }
 
-    public void Initialize(long generation = 0)
+    public void UpdateGeneration(long value)
     {
-        this.generation = generation;
+        this.generation = value;
     }
 
     public void RunUpdateCheck()
