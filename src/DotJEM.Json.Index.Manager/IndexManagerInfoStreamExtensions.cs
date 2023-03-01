@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using DotJEM.Diagnostics.Streams;
+using DotJEM.Json.Index.Manager.Tracking;
 
 namespace DotJEM.Json.Index.Manager;
 
@@ -18,9 +19,15 @@ public static class IndexManagerInfoStreamExtensions
     {
         self.WriteEvent(new StorageIngestStateInfoStreamEvent(typeof(TSource), InfoLevel.INFO, state, callerMemberName, callerFilePath, callerLineNumber));
     }
+
+    public static void WriteTrackerStateEvent<TSource>(this IInfoStream<TSource> self, ITrackerState state, [CallerMemberName] string callerMemberName = null, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+    {
+        self.WriteEvent(new TrackerStateInfoStreamEvent(typeof(TSource), InfoLevel.INFO, state, callerMemberName, callerFilePath, callerLineNumber));
+
+    }
 }
 
-public record struct StorageIngestState(StorageAreaIngestState[] Areas)
+public record struct StorageIngestState(StorageAreaIngestState[] Areas): ITrackerState
 {
     public DateTime StartTime => Areas.Min(x => x.StartTime);
     public TimeSpan Duration => Areas.Max(x => x.Duration);
@@ -52,6 +59,17 @@ public record struct StorageAreaIngestState(
         return $" -> [{Duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / Duration.TotalSeconds:F} / sec) - {LastEvent}";
     }
 }
+public class TrackerStateInfoStreamEvent : InfoStreamEvent
+{
+    public ITrackerState State { get; }
+
+    public TrackerStateInfoStreamEvent(Type source, InfoLevel level, ITrackerState state, string callerMemberName, string callerFilePath, int callerLineNumber)
+        : base(source, level, state.ToString, callerMemberName, callerFilePath, callerLineNumber)
+    {
+        State = state;
+    }
+}
+
 
 public class StorageIngestStateInfoStreamEvent : InfoStreamEvent
 {

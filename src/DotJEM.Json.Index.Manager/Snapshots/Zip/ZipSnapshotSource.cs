@@ -49,7 +49,6 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
         string segmentsFile = (string)Metadata["segmentsFile"];
         if (segmentsFile is null)
             return false;
-
         
         string segmentsGenFile = (string)Metadata["segmentsGenFile"];
         if (segmentsGenFile is null)
@@ -84,7 +83,8 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
 
     public ISnapshot Open()
     {
-        LuceneZipSnapshot snapshot =  new LuceneZipSnapshot(archive, Metadata);
+        LuceneZipSnapshot snapshot =  new LuceneZipSnapshot(Name, archive, Metadata);
+        infoStream.WriteSnapshotOpenEvent(snapshot, $"Opening snapshot '{Name}'.");
         snapshot.InfoStream.Forward(infoStream);
         return snapshot;
     }

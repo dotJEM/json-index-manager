@@ -10,24 +10,24 @@ namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 
 public class LuceneZipSnapshot : ISnapshot
 {
-    private readonly JObject metadata;
     private readonly IInfoStream<LuceneZipSnapshot> infoStream = new InfoStream<LuceneZipSnapshot>();
     private readonly ZipArchive archive;
 
+    public string Name { get; }
     public long Generation { get; }
     public ILuceneFile SegmentsFile { get; }
     public ILuceneFile SegmentsGenFile { get; }
     public IEnumerable<ILuceneFile> Files { get; }
     public IInfoStream InfoStream => infoStream;
 
-    public LuceneZipSnapshot(ZipArchive archive, JObject metadata)
+    public LuceneZipSnapshot(string name, ZipArchive archive, JObject metadata)
     {
+        this.Name = name;
         this.archive = archive;
-        this.metadata = metadata;
 
-        Files = new List<ILuceneFile>();
-        if (metadata["files"] is JArray arr)
-            Files = arr.Select(fileName => CreateLuceneZipFile((string)fileName, archive));
+        Files = metadata["files"] is JArray arr 
+            ? arr.Select(fileName => CreateLuceneZipFile((string)fileName, archive)).ToList()
+            : new List<ILuceneFile>();
         SegmentsFile = CreateLuceneZipFile((string)metadata["segmentsFile"], archive) ;
         SegmentsGenFile = CreateLuceneZipFile((string)metadata["segmentsGenFile"], archive);
         Generation = (long)metadata["generation"];
@@ -44,7 +44,7 @@ public class LuceneZipSnapshot : ISnapshot
     public void Dispose()
     {
         archive.Dispose();
-        infoStream.WriteSnapshotCloseEvent(this, "");
+        infoStream.WriteSnapshotCloseEvent(this, $"Closing snapshot '{Name}'.");
     }
 
 }

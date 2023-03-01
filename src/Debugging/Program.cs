@@ -16,6 +16,7 @@ using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
+using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.TaskScheduler;
@@ -147,7 +148,7 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 
 public static class Reporter
 {
-    private static StorageIngestState lastState;
+    private static ITrackerState lastState;
  
     public static void CaptureInfo(IInfoStreamEvent evt)
     {
@@ -168,7 +169,7 @@ public static class Reporter
                 }
                 break;
 
-            case StorageIngestStateInfoStreamEvent ievt :
+            case TrackerStateInfoStreamEvent ievt :
                 lastState = ievt.State;
                 break;
 

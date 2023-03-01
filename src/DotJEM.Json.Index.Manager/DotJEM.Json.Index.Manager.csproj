@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <Folder Include="Cleanup\" />
-    <Folder Include="Snapshots\Zip\" />
   </ItemGroup>
 
 </Project>
