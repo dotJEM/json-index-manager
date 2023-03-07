@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Storage.Snapshot;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.Snapshots;
@@ -23,13 +22,13 @@ public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, S
 
 public class IndexSnapshotManager : IIndexSnapshotManager
 {
-    private readonly IStorageIndex index;
+    private readonly IJsonIndexAdapter index;
     private readonly ISnapshotStrategy strategy;
     
     private readonly IInfoStream<IndexSnapshotManager> infoStream = new InfoStream<IndexSnapshotManager>();
     public IInfoStream InfoStream => infoStream;
 
-    public IndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy)
+    public IndexSnapshotManager(IJsonIndexAdapter index, ISnapshotStrategy snapshotStrategy)
     {
         this.index = index;
         this.strategy = snapshotStrategy;
@@ -54,7 +53,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
             ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = json });
             
             index.Commit();
-            index.Storage.Snapshot(target);
+            index.Snapshot(target);
             infoStream.WriteInfo($"Created snapshot");
             return true;
         }
@@ -91,7 +90,7 @@ public class IndexSnapshotManager : IIndexSnapshotManager
                 }
 
                 infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                bool restored = index.Storage.Restore(source);
+                bool restored = index.Restore(source);
                 if (source.Metadata["storageGenerations"] is not JObject generations) continue;
                 if (generations["Areas"] is not JArray areas) continue;
 

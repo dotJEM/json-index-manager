@@ -5,7 +5,6 @@ using System.Runtime.Remoting;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Storage.Snapshot;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 

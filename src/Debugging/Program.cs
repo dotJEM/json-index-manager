@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Debugging.Adapter;
 using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration;
@@ -43,30 +44,20 @@ index.Configuration.SetScoreField("$score");
 index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
-
-//IStorageManager storageManager = new StorageManager(
-//    storage,
-//    new WebBackgroundTaskScheduler(),
-//    new DefaultStorageWatchConfiguration());
-//IIndexManager manager = new IndexManager(
-//    storageManager, 
-//    new IndexSnapshotManager(new ZipSnapshotStrategy(".\\app_data\\snapshots")),
-//    new WriteContextFactory(index));
-
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
 
+
+
+
 IIndexManager indexManager = new IndexManager(
     storage,
-    index,
+    new Lucene3(index),
     new ZipSnapshotStrategy(".\\app_data\\snapshots"),
     new WebBackgroundTaskScheduler(),
     new DefaultIndexManagerConfiguration()
 );
 Task run = Task.WhenAll(
-    //storageManager.Observable.ForEachAsync(Reporter.Capture),
-    //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     indexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     Task.Run(indexManager.RunAsync)
 );
@@ -100,14 +91,6 @@ while (true)
 
 EXIT:
 await run;
-
-//Task setup = Task.WhenAll(
-//    storageManager.Observable.ForEachAsync(Reporter.Capture)),
-//    storageManager.Inf
-//    );
-
-//storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-//manager.InfoStream.ForEachAsync(Reporter.CaptureInfo)
 
 
 public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
@@ -183,6 +166,5 @@ public static class Reporter
     public static void Report()
     {
         Console.WriteLine(lastState);
-
     }
 }

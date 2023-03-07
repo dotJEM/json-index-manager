@@ -2,7 +2,6 @@
 using System.IO.Compression;
 using System.Linq;
 using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Storage.Snapshot;
 using Newtonsoft.Json.Linq;
 using ILuceneFile = DotJEM.Json.Index.Storage.Snapshot.ILuceneFile;
 

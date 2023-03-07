@@ -1,10 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net481</TargetFramework>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotJEM.Json.Index" Version="1.1.251" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DotJEM.Json.Index.Manager\DotJEM.Json.Index.Manager.csproj" />

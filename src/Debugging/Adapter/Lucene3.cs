@@ -1,24 +1,34 @@
-﻿using System;
+﻿using DotJEM.Json.Index.Manager;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration.IdentityStrategies;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
+using DotJEM.Json.Index.Manager.WriteContexts;
+using DotJEM.Json.Index.Storage.Snapshot;
 
-namespace DotJEM.Json.Index.Manager.WriteContexts;
+namespace Debugging.Adapter;
 
-public interface ILuceneWriteContext : IDisposable
+
+internal class Lucene3 : IJsonIndexAdapter
 {
-    void Write(JObject entity);
-    void Create(JObject entity);
-    void Delete(JObject entity);
-    void Commit();
-    void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes);
+    public Lucene3(LuceneStorageIndex index)
+    {
+        throw new NotImplementedException();
+    }
 }
 
-public class SequentialLuceneWriteContext : ILuceneWriteContext
+
+public class SequentialLuceneWriteContext : IIndexWriteContext
 {
-    private readonly IStorageIndex index;
     private readonly double ramBufferSize;
+    private readonly IStorageIndex index;
     private readonly IDocumentFactory mapper;
     private readonly IIdentityResolver resolver;
     private IndexWriter writer;
@@ -110,4 +120,15 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         Writer?.Dispose();
         Writer?.SetRAMBufferSizeMB(originalBufferSize);
     }
+}
+
+public class LuceneFileAdapter : ILuceneFile
+{
+    public string Name { get; }
+
+    public Stream Open()
+    {
+        throw new NotImplementedException();
+    }
+
 }

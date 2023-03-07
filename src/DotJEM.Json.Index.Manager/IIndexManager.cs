@@ -21,21 +21,20 @@ namespace DotJEM.Json.Index.Manager;
 
 public interface IWriteContextFactory
 {
-    WriteContexts.ILuceneWriteContext Create();
+    IJsonIndexWriter Create();
 }
 
 public class WriteContextFactory : IWriteContextFactory
 {
-    private readonly IStorageIndex index;
+    private readonly IJsonIndexAdapter index;
     private readonly IWriteContextConfiguration configuration;
 
-    public WriteContextFactory(IStorageIndex index, IWriteContextConfiguration configuration = null)
+    public WriteContextFactory(IJsonIndexAdapter index, IWriteContextConfiguration configuration = null)
     {
         this.index = index;
         this.configuration = configuration ?? new DefaultWriteContextConfiguration();
     }
-    public WriteContexts.ILuceneWriteContext Create()
-        => new SequentialLuceneWriteContext(index, configuration.RamBufferSize);
+    public IJsonIndexWriter Create() => index.CreateWriter(configuration);
 }
 
 public interface IIndexManager
@@ -54,12 +53,12 @@ public class IndexManager : IIndexManager
     private readonly IIndexSnapshotManager snapshots;
     private readonly IIndexIngestProgressTracker tracker;
 
-    private readonly WriteContexts.ILuceneWriteContext context;
+    private readonly IJsonIndexWriter context;
     private readonly IInfoStream<IndexManager> infoStream = new InfoStream<IndexManager>();
 
     public IInfoStream InfoStream => infoStream;
 
-    public IndexManager(IStorageContext context, IStorageIndex index, ISnapshotStrategy snapshotStrategy,
+    public IndexManager(IStorageContext context, IJsonIndexAdapter index, ISnapshotStrategy snapshotStrategy,
         IWebBackgroundTaskScheduler scheduler, IIndexManagerConfiguration configuration)
       : this(new StorageManager(context, scheduler, configuration.StorageConfiguration),
           new IndexSnapshotManager(index, snapshotStrategy),
@@ -145,6 +144,13 @@ public class IndexManager : IIndexManager
     }
 }
 
+public interface IJsonIndexAdapter
+{
+    void Commit();
+    bool Snapshot(ISnapshotTarget target);
+    bool Restore(ISnapshotSourceWithMetadata source);
+    IJsonIndexWriter CreateWriter(IWriteContextConfiguration configuration);
+}
 
 public class Initialization
 {

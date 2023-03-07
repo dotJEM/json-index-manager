@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotJEM.Json.Index" Version="1.1.251" />
     <PackageReference Include="DotJEM.Json.Storage" Version="0.4.42" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
@@ -20,6 +19,7 @@
 
   <ItemGroup>
     <Folder Include="Cleanup\" />
+    <Folder Include="Abstractions\" />
   </ItemGroup>
 
 </Project>
