@@ -25,7 +25,7 @@ internal class Lucene3 : IJsonIndexAdapter
 }
 
 
-public class SequentialLuceneWriteContext : IIndexWriteContext
+public class SequentialLuceneWriter : IJsonIndexWriter
 {
     private readonly double ramBufferSize;
     private readonly IStorageIndex index;
@@ -46,7 +46,7 @@ public class SequentialLuceneWriteContext : IIndexWriteContext
 
     private readonly double originalBufferSize;
 
-    public SequentialLuceneWriteContext(IStorageIndex index, double ramBufferSize)
+    public SequentialLuceneWriter(IStorageIndex index, double ramBufferSize)
     {
         this.index = index;
         this.ramBufferSize = ramBufferSize;
