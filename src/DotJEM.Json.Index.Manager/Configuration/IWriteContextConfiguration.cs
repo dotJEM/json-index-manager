@@ -2,5 +2,6 @@
 
 public interface IWriteContextConfiguration
 {
+    int BatchSize { get; }
     double RamBufferSize { get; }
 }

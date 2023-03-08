@@ -70,9 +70,9 @@ public class LuceneZipFile : ILuceneFile
 
         protected override void Dispose(bool disposing)
         {
+            info.WriteFileCloseEvent(file, $"File {file.Name} restored.");
             base.Dispose(disposing);
             inner.Dispose();
-            info.WriteFileOpenEvent(file, $"File {file.Name} restored.");
         }
         public override void Close()
         {

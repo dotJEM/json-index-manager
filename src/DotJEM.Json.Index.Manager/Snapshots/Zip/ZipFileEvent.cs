@@ -12,5 +12,6 @@ public class ZipFileEvent : InfoStreamEvent
         : base(source, level, message, callerMemberName, callerFilePath, callerLineNumber)
     {
         File = file;
+        EventType = eventType;
     }
 }

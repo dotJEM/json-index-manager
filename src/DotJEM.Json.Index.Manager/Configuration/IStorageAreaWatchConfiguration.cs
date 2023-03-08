@@ -2,5 +2,6 @@
 
 public interface IStorageAreaWatchConfiguration
 {
+    string Name { get; }
     string Interval { get; }
 }

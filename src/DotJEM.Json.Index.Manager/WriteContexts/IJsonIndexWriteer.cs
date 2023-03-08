@@ -1,12 +1,13 @@
 ﻿using System;
 using DotJEM.Json.Index.Configuration.IdentityStrategies;
+using DotJEM.Json.Index.Manager.Configuration;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.WriteContexts;
 
-public interface ILuceneWriteContext : IDisposable
+public interface IJsonIndexWriteer : IDisposable
 {
     void Write(JObject entity);
     void Create(JObject entity);
@@ -15,10 +16,10 @@ public interface ILuceneWriteContext : IDisposable
     void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes);
 }
 
-public class SequentialLuceneWriteContext : ILuceneWriteContext
+public class SequentialJsonIndexWriteer : IJsonIndexWriteer
 {
     private readonly IStorageIndex index;
-    private readonly double ramBufferSize;
+    private readonly IWriteContextConfiguration configuration;
     private readonly IDocumentFactory mapper;
     private readonly IIdentityResolver resolver;
     private IndexWriter writer;
@@ -29,22 +30,22 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         {
             if (writer == index.Storage.Writer) return writer;
             writer = index.Storage.Writer;
-            writer.SetRAMBufferSizeMB(ramBufferSize);
+            writer.SetRAMBufferSizeMB(configuration.RamBufferSize);
             return writer;
         }
     }
 
     private readonly double originalBufferSize;
 
-    public SequentialLuceneWriteContext(IStorageIndex index, double ramBufferSize)
+    public SequentialJsonIndexWriteer(IStorageIndex index, IWriteContextConfiguration configuration)
     {
         this.index = index;
-        this.ramBufferSize = ramBufferSize;
+        this.configuration = configuration;
         this.mapper = index.Services.DocumentFactory;
         this.resolver = index.Configuration.IdentityResolver;
 
         originalBufferSize = Writer.GetRAMBufferSizeMB();
-        Writer.SetRAMBufferSizeMB(ramBufferSize);
+        Writer.SetRAMBufferSizeMB(configuration.RamBufferSize);
     }
 
     private long counter = 0;
@@ -55,7 +56,7 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         Document doc = mapper.Create(entity);
         Writer.UpdateDocument(term, doc);
         counter++;
-        if(counter % 100000 == 0) Writer.Commit();
+        if(counter % configuration.BatchSize == 0) Writer.Commit();
     }
 
 
@@ -64,15 +65,14 @@ public class SequentialLuceneWriteContext : ILuceneWriteContext
         Document doc = mapper.Create(entity);
         Writer.AddDocument(doc);
         counter++;
-        if(counter % 100000 == 0) Writer.Commit();
-
-
+        if(counter % configuration.BatchSize == 0) Writer.Commit();
     }
 
     public void Delete(JObject entity)
     {
         Term term = resolver.CreateTerm(entity);
         Writer.DeleteDocuments(term);
+        if(counter % configuration.BatchSize == 0) Writer.Commit();
     }
 
     public void Commit()

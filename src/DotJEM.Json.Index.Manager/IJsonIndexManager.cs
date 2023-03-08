@@ -21,7 +21,7 @@ namespace DotJEM.Json.Index.Manager;
 
 public interface IWriteContextFactory
 {
-    WriteContexts.ILuceneWriteContext Create();
+    IJsonIndexWriteer Create();
 }
 
 public class WriteContextFactory : IWriteContextFactory
@@ -34,11 +34,11 @@ public class WriteContextFactory : IWriteContextFactory
         this.index = index;
         this.configuration = configuration ?? new DefaultWriteContextConfiguration();
     }
-    public WriteContexts.ILuceneWriteContext Create()
-        => new SequentialLuceneWriteContext(index, configuration.RamBufferSize);
+    public IJsonIndexWriteer Create()
+        => new SequentialJsonIndexWriteer(index, configuration);
 }
 
-public interface IIndexManager
+public interface IJsonIndexManager
 {
     IInfoStream InfoStream { get; }
 
@@ -48,25 +48,25 @@ public interface IIndexManager
 
 
 
-public class IndexManager : IIndexManager
+public class JsonIndexManager : IJsonIndexManager
 {
     private readonly IStorageManager storage;
-    private readonly IIndexSnapshotManager snapshots;
+    private readonly IJsonIndexSnapshotManager snapshots;
     private readonly IIndexIngestProgressTracker tracker;
 
-    private readonly WriteContexts.ILuceneWriteContext context;
-    private readonly IInfoStream<IndexManager> infoStream = new InfoStream<IndexManager>();
+    private readonly IJsonIndexWriteer context;
+    private readonly IInfoStream<JsonIndexManager> infoStream = new InfoStream<JsonIndexManager>();
 
     public IInfoStream InfoStream => infoStream;
 
-    public IndexManager(IStorageContext context, IStorageIndex index, ISnapshotStrategy snapshotStrategy,
+    public JsonIndexManager(IStorageContext context, IStorageIndex index, ISnapshotStrategy snapshotStrategy,
         IWebBackgroundTaskScheduler scheduler, IIndexManagerConfiguration configuration)
       : this(new StorageManager(context, scheduler, configuration.StorageConfiguration),
-          new IndexSnapshotManager(index, snapshotStrategy),
+          new JsonIndexSnapshotManager(index, snapshotStrategy),
           new WriteContextFactory(index, configuration.WriterConfiguration))
     { }
 
-    public IndexManager(IStorageManager storage, IIndexSnapshotManager snapshots, IWriteContextFactory writeContextFactory)
+    public JsonIndexManager(IStorageManager storage, IJsonIndexSnapshotManager snapshots, IWriteContextFactory writeContextFactory)
     {
         this.storage = storage;
         this.snapshots = snapshots;
@@ -114,6 +114,7 @@ public class IndexManager : IIndexManager
         foreach (StorageAreaIngestState state in restoreResult.State.Areas)
         {
             storage.UpdateGeneration(state.Area, state.Generation.Current);
+            tracker.UpdateState(state);
         }
 
         return restoreResult.RestoredFromSnapshot;

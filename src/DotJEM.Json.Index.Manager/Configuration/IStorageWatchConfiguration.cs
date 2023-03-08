@@ -1,6 +1,9 @@
-﻿namespace DotJEM.Json.Index.Manager.Configuration;
+﻿using System.Collections.Generic;
+
+namespace DotJEM.Json.Index.Manager.Configuration;
 
 public interface IStorageWatchConfiguration
 {
-    IStorageAreaWatchConfiguration GetConfiguration(string areaName);
+
+    IEnumerable<IStorageAreaWatchConfiguration> GetConfigurations(IEnumerable<string> names);
 }

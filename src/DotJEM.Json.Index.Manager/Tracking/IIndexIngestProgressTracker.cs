@@ -17,6 +17,7 @@ public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObser
     IInfoStream InfoStream { get; }
     StorageIngestState IngestState { get; }
     SnapshotRestoreState RestoreState { get; }
+    void UpdateState(StorageAreaIngestState state);
 }
 public interface ITrackerState {}
 
@@ -40,6 +41,12 @@ public class IndexIngestProgressTracker : ForwarderObservable<ITrackerState>, II
     {
         observerTrackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));
         Publish(IngestState);
+    }
+
+    public void UpdateState(StorageAreaIngestState state)
+    {
+        observerTrackers.AddOrUpdate(state.Area, s => new StorageAreaIngestStateTracker(s, StorageObserverEventType.Initialized).UpdateState(state)
+            , (s, tracker) => tracker.UpdateState(state));
     }
 
     public void OnNext(IInfoStreamEvent value)
@@ -172,6 +179,12 @@ public class IndexIngestProgressTracker : ForwarderObservable<ITrackerState>, II
         public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation)
         {
             State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
+            return this;
+        }
+
+        public StorageAreaIngestStateTracker UpdateState(StorageAreaIngestState areaState)
+        {
+            this.State = areaState;
             return this;
         }
     }

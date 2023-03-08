@@ -1,6 +1,6 @@
 ﻿namespace DotJEM.Json.Index.Manager.Configuration;
 
-public interface IIndexManagerConfiguration
+public interface IJsonIndexManagerConfiguration
 {
     IStorageWatchConfiguration StorageConfiguration { get; }
     IWriteContextConfiguration WriterConfiguration { get; }

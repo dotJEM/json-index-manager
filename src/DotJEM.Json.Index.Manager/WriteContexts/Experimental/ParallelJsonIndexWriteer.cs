@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.WriteContexts.Experimental;
 
-internal class ParallelLuceneWriteContext : ILuceneWriteContext
+internal class ParallelJsonIndexWriteer : IJsonIndexWriteer
 {
     private readonly IStorageIndex index;
     private readonly IDocumentFactory mapper;
@@ -22,7 +22,7 @@ internal class ParallelLuceneWriteContext : ILuceneWriteContext
     private readonly IngestPipeline<IWriterCommand> pipeline = new IngestPipeline<IWriterCommand>();
     private readonly double originalBufferSize;
 
-    public ParallelLuceneWriteContext(IStorageIndex index)
+    public ParallelJsonIndexWriteer(IStorageIndex index)
     {
         this.index = index;
         writer = index.Storage.Writer;

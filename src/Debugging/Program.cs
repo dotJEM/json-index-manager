@@ -56,19 +56,19 @@ index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
 
-IIndexManager indexManager = new IndexManager(
+IJsonIndexManager jsonIndexManager = new JsonIndexManager(
     storage,
     index,
     new ZipSnapshotStrategy(".\\app_data\\snapshots"),
     new WebBackgroundTaskScheduler(),
-    new DefaultIndexManagerConfiguration()
+    new DefaultJsonIndexManagerConfiguration()
 );
 Task run = Task.WhenAll(
     //storageManager.Observable.ForEachAsync(Reporter.Capture),
     //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    indexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    Task.Run(indexManager.RunAsync)
+    jsonIndexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
+    Task.Run(jsonIndexManager.RunAsync)
 );
 
 
@@ -81,7 +81,7 @@ while (true)
             goto EXIT;
 
         case 'S':
-            await indexManager.TakeSnapshotAsync();
+            await jsonIndexManager.TakeSnapshotAsync();
             break;
 
         case 'C':

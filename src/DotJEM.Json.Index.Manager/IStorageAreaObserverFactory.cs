@@ -26,8 +26,9 @@ public class StorageAreaObserverFactory : IStorageAreaObserverFactory
     }
 
     public IEnumerable<IStorageAreaObserver> CreateAll()
-        => context.AreaInfos.Select(areaInfo => Create(areaInfo.Name));
+        => configuration.GetConfigurations(context.AreaInfos.Select(areaInfo => areaInfo.Name))
+            .Select(Create);
 
-    private IStorageAreaObserver Create(string area) 
-        => new StorageAreaObserver(context.Area(area), scheduler, configuration.GetConfiguration(area));
+    private IStorageAreaObserver Create(IStorageAreaWatchConfiguration config) 
+        => new StorageAreaObserver(context.Area(config.Name), scheduler, config);
 }
