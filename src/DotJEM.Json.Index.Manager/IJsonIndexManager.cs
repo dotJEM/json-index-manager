@@ -60,9 +60,9 @@ public class JsonIndexManager : IJsonIndexManager
     public IInfoStream InfoStream => infoStream;
 
     public JsonIndexManager(IStorageContext context, IStorageIndex index, ISnapshotStrategy snapshotStrategy,
-        IWebBackgroundTaskScheduler scheduler, IIndexManagerConfiguration configuration)
+        IWebBackgroundTaskScheduler scheduler, IJsonIndexManagerConfiguration configuration)
       : this(new StorageManager(context, scheduler, configuration.StorageConfiguration),
-          new JsonIndexSnapshotManager(index, snapshotStrategy),
+          new JsonIndexSnapshotManager(index, snapshotStrategy, scheduler, configuration.SnapshotConfiguration),
           new WriteContextFactory(index, configuration.WriterConfiguration))
     { }
 
@@ -89,17 +89,9 @@ public class JsonIndexManager : IJsonIndexManager
     {
         bool restoredFromSnapshot = await RestoreSnapshotAsync();
         infoStream.WriteInfo($"Index restored from a snapshot: {restoredFromSnapshot}.");
-        Task snapshot = Task.Run(async () =>
-        {
-            await Initialization.WhenInitializationComplete(tracker).ConfigureAwait(false);
-            if (!restoredFromSnapshot)
-            {
-                infoStream.WriteInfo("Taking snapshot after initialization.");
-                await TakeSnapshotAsync().ConfigureAwait(false);
-            }
-        });
-        Task fetcher = storage.RunAsync();
-        await Task.WhenAll(snapshot, fetcher).ConfigureAwait(false);
+        await Task.WhenAll(
+            snapshots.RunAsync(tracker, restoredFromSnapshot), 
+            storage.RunAsync()).ConfigureAwait(false);
     }
 
     public async Task<bool> TakeSnapshotAsync()
@@ -116,7 +108,6 @@ public class JsonIndexManager : IJsonIndexManager
             storage.UpdateGeneration(state.Area, state.Generation.Current);
             tracker.UpdateState(state);
         }
-
         return restoreResult.RestoredFromSnapshot;
     }
 

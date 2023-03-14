@@ -2,17 +2,21 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
+using DotJEM.Json.Index.Manager.Configuration;
+using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.TaskScheduler;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.Snapshots;
 
-public interface IIndexSnapshotManager
+public interface IJsonIndexSnapshotManager
 {
     IInfoStream InfoStream { get; }
 
     Task<bool> TakeSnapshotAsync(StorageIngestState state);
     Task<RestoreSnapshotResult> RestoreSnapshotAsync();
+    Task RunAsync(IIndexIngestProgressTracker indexIngestProgressTracker, bool restoredFromSnapshot);
 }
 
 public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, StorageIngestState State)
@@ -21,19 +25,34 @@ public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, S
     public StorageIngestState State { get; } = State;
 }
 
-public class IndexSnapshotManager : IIndexSnapshotManager
+public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
 {
     private readonly IStorageIndex index;
     private readonly ISnapshotStrategy strategy;
-    
-    private readonly IInfoStream<IndexSnapshotManager> infoStream = new InfoStream<IndexSnapshotManager>();
+    private readonly IWebBackgroundTaskScheduler scheduler;
+    private readonly ISnapshotConfiguration configuration;
+
+    private readonly IInfoStream<JsonIndexSnapshotManager> infoStream = new InfoStream<JsonIndexSnapshotManager>();
     public IInfoStream InfoStream => infoStream;
 
-    public IndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy)
+    public JsonIndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy, IWebBackgroundTaskScheduler scheduler, ISnapshotConfiguration configuration)
     {
         this.index = index;
         this.strategy = snapshotStrategy;
+        this.scheduler = scheduler;
+        this.configuration = configuration;
         this.strategy.InfoStream.Forward(infoStream);
+    }
+
+    public async Task RunAsync(IIndexIngestProgressTracker tracker, bool restoredFromSnapshot)
+    {
+        await Initialization.WhenInitializationComplete(tracker).ConfigureAwait(false);
+        if (!restoredFromSnapshot)
+        {
+            infoStream.WriteInfo("Taking snapshot after initialization.");
+            await TakeSnapshotAsync(tracker.IngestState).ConfigureAwait(false);
+        }
+        scheduler.Schedule(nameof(JsonIndexSnapshotManager), b => this.TakeSnapshot(tracker.IngestState), configuration.Schedule);
     }
 
     public Task<bool> TakeSnapshotAsync(StorageIngestState state)

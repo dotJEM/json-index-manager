@@ -4,4 +4,10 @@ public class DefaultJsonIndexManagerConfiguration : IJsonIndexManagerConfigurati
 {
     public IStorageWatchConfiguration StorageConfiguration { get; } = new DefaultStorageWatchConfiguration();
     public IWriteContextConfiguration WriterConfiguration { get; } = new DefaultWriteContextConfiguration();
+    public ISnapshotConfiguration SnapshotConfiguration { get; } = new DefaultSnapshotConfiguration();
+}
+
+public class DefaultSnapshotConfiguration : ISnapshotConfiguration
+{
+    public string Schedule { get; }
 }

@@ -28,7 +28,7 @@ public class IndexIngestProgressTracker : ForwarderObservable<ITrackerState>, II
     //      It's fine that data-in is guarded by a ConcurrentDictionary, but for data out it shouldn't matter.
     private readonly ConcurrentDictionary<string, StorageAreaIngestStateTracker> observerTrackers = new();
     private readonly ConcurrentDictionary<string, IndexFileRestoreStateTracker> restoreTrackers = new();
-    private readonly IInfoStream<IndexManager> infoStream = new InfoStream<IndexManager>();
+    private readonly IInfoStream<JsonIndexManager> infoStream = new InfoStream<JsonIndexManager>();
 
     public IInfoStream InfoStream => infoStream;
 
