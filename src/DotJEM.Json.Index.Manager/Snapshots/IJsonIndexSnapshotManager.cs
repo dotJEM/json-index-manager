@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Storage.Snapshot;
 using DotJEM.TaskScheduler;
@@ -16,7 +15,7 @@ public interface IJsonIndexSnapshotManager
 
     Task<bool> TakeSnapshotAsync(StorageIngestState state);
     Task<RestoreSnapshotResult> RestoreSnapshotAsync();
-    Task RunAsync(IIndexIngestProgressTracker indexIngestProgressTracker, bool restoredFromSnapshot);
+    Task RunAsync(IIngestProgressTracker ingestProgressTracker, bool restoredFromSnapshot);
 }
 
 public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, StorageIngestState State)
@@ -25,26 +24,38 @@ public readonly record struct RestoreSnapshotResult(bool RestoredFromSnapshot, S
     public StorageIngestState State { get; } = State;
 }
 
+public class NullIndexSnapshotManager : IJsonIndexSnapshotManager
+{
+    public IInfoStream InfoStream { get; } = new InfoStream<JsonIndexSnapshotManager>();
+
+    public Task<bool> TakeSnapshotAsync(StorageIngestState state) => Task.FromResult(true);
+
+    public Task<RestoreSnapshotResult> RestoreSnapshotAsync() => Task.FromResult(default(RestoreSnapshotResult));
+
+    public Task RunAsync(IIngestProgressTracker ingestProgressTracker, bool restoredFromSnapshot) => Task.CompletedTask;
+}
+
 public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
 {
     private readonly IStorageIndex index;
     private readonly ISnapshotStrategy strategy;
-    private readonly IWebBackgroundTaskScheduler scheduler;
-    private readonly ISnapshotConfiguration configuration;
-
+    private readonly IWebTaskScheduler scheduler;
     private readonly IInfoStream<JsonIndexSnapshotManager> infoStream = new InfoStream<JsonIndexSnapshotManager>();
+
+    private readonly string schedule;
+
     public IInfoStream InfoStream => infoStream;
 
-    public JsonIndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy, IWebBackgroundTaskScheduler scheduler, ISnapshotConfiguration configuration)
+    public JsonIndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy, IWebTaskScheduler scheduler, string schedule)
     {
         this.index = index;
         this.strategy = snapshotStrategy;
         this.scheduler = scheduler;
-        this.configuration = configuration;
+        this.schedule = schedule;
         this.strategy.InfoStream.Forward(infoStream);
     }
 
-    public async Task RunAsync(IIndexIngestProgressTracker tracker, bool restoredFromSnapshot)
+    public async Task RunAsync(IIngestProgressTracker tracker, bool restoredFromSnapshot)
     {
         await Initialization.WhenInitializationComplete(tracker).ConfigureAwait(false);
         if (!restoredFromSnapshot)
@@ -52,7 +63,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
             infoStream.WriteInfo("Taking snapshot after initialization.");
             await TakeSnapshotAsync(tracker.IngestState).ConfigureAwait(false);
         }
-        scheduler.Schedule(nameof(JsonIndexSnapshotManager), b => this.TakeSnapshot(tracker.IngestState), configuration.Schedule);
+        scheduler.Schedule(nameof(JsonIndexSnapshotManager), b => this.TakeSnapshot(tracker.IngestState), schedule);
     }
 
     public Task<bool> TakeSnapshotAsync(StorageIngestState state)
@@ -84,7 +95,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
         }
         finally
         {
-            strategy.CleanOldSnapshots(2);
+            strategy.CleanOldSnapshots();
         }
     }
 
@@ -122,7 +133,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
             catch (Exception ex)
             {
                 infoStream.WriteError("Failed to restore snapshot.", ex);
-                    return new RestoreSnapshotResult(false, default);
+                return new RestoreSnapshotResult(false, default);
             }
         }
     }

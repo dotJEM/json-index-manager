@@ -2,17 +2,14 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Storage;
-using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.ObservableExt;
 using DotJEM.TaskScheduler;
-using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager;
 
 
-public interface IStorageManager
+public interface IJsonStorageManager
 {
     IInfoStream InfoStream { get; }
     IForwarderObservable<IStorageChange> Observable { get; }
@@ -20,28 +17,31 @@ public interface IStorageManager
     void UpdateGeneration(string area, long generation);
 }
 
-public class StorageManager : IStorageManager
+public class JsonStorageManager : IJsonStorageManager
 {
-    private readonly Dictionary<string, IStorageAreaObserver> observers;
+    private readonly Dictionary<string, IJsonStorageAreaObserver> observers;
     private readonly ForwarderObservable<IStorageChange> observable = new ();
-    private readonly InfoStream<StorageManager> infoStream = new ();
+    private readonly InfoStream<JsonStorageManager> infoStream = new ();
 
     public IForwarderObservable<IStorageChange> Observable => observable;
     public IInfoStream InfoStream => infoStream;
 
-    public StorageManager(IStorageContext context, IWebBackgroundTaskScheduler scheduler, IStorageWatchConfiguration configuration)
-        : this(new StorageAreaObserverFactory(context, scheduler, configuration))
+    public JsonStorageManager(IStorageContext context, IWebTaskScheduler scheduler)
+        : this(new JsonStorageAreaObserverFactory(context, scheduler))
     {
     }
 
-    public StorageManager(IStorageAreaObserverFactory factory)
+    public JsonStorageManager(IJsonStorageAreaObserverFactory factory)
     {
+
         this.observers = factory.CreateAll()
             .Select(observer => {
                 observer.Observable.Forward(observable);
                 observer.InfoStream.Forward(infoStream);
                 return observer;
             }).ToDictionary(x => x.AreaName);
+  
+        //TODO: Setup cleaners.
     }
 
     public async Task RunAsync()
@@ -53,7 +53,7 @@ public class StorageManager : IStorageManager
 
     public void UpdateGeneration(string area, long generation)
     {
-        if (!observers.TryGetValue(area, out IStorageAreaObserver observer))
+        if (!observers.TryGetValue(area, out IJsonStorageAreaObserver observer))
             return; // TODO?
 
         observer.UpdateGeneration(generation);

@@ -10,13 +10,15 @@ namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 public class ZipSnapshotStrategy : ISnapshotStrategy
 {
     private readonly string path;
+    private readonly int maxSnapshots;
     private readonly IInfoStream<ZipSnapshotStrategy> infoStream = new InfoStream<ZipSnapshotStrategy>();
 
     public IInfoStream InfoStream => infoStream;
 
-    public ZipSnapshotStrategy(string path)
+    public ZipSnapshotStrategy(string path, int maxSnapshots = 2)
     {
         this.path = path;
+        this.maxSnapshots = maxSnapshots;
     }
 
     public ISnapshotTarget CreateTarget(JObject metaData)
@@ -32,7 +34,7 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
         return source;
     }
 
-    public void CleanOldSnapshots(int maxSnapshots)
+    public void CleanOldSnapshots()
     {
         foreach (string file in GetSnapshots().Skip(maxSnapshots))
         {

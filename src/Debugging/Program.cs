@@ -13,10 +13,10 @@ using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
-using DotJEM.Json.Index.Manager.Configuration;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Index.Manager.Tracking;
+using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.TaskScheduler;
@@ -28,7 +28,7 @@ using Version = Lucene.Net.Util.Version;
 
 //TraceSource trace; 
 
-var storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=ssn3db;Integrated Security=True");
+IStorageContext storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=ssn3db;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
 storage.Configure.MapField(JsonField.ContentType, "contentType");
 storage.Configure.MapField(JsonField.Version, "$version");
@@ -36,7 +36,7 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-var index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(Version.LUCENE_30, new SortedSet<string>())));
+IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(Version.LUCENE_30, new SortedSet<string>())));
 index.Configuration.SetTypeResolver("contentType");
 index.Configuration.SetRawField("$raw");
 index.Configuration.SetScoreField("$score");
@@ -44,25 +44,38 @@ index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 
-//IStorageManager storageManager = new StorageManager(
-//    storage,
-//    new WebBackgroundTaskScheduler(),
+//IJsonStorageManager storageManager = new JsonStorageManager(
+//    jsonStorage,
+//    new WebTaskScheduler(),
 //    new DefaultStorageWatchConfiguration());
 //IIndexManager manager = new IndexManager(
 //    storageManager, 
 //    new IndexSnapshotManager(new ZipSnapshotStrategy(".\\app_data\\snapshots")),
-//    new WriteContextFactory(index));
+//    new JsonWriterFactory(index));
 
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
 
+//IJsonIndexManager jsonIndexManager = new JsonIndexManager(
+//    storage,
+//    index,
+//    new ZipSnapshotStrategy(".\\app_data\\snapshots", 3),
+//    new WebTaskScheduler(),
+//    new DefaultJsonIndexManagerConfiguration()
+//);
+//public JsonIndexManager(IStorageContext context, IStorageIndex index, IWebTaskScheduler scheduler)
+//    : this(new JsonStorageManager(context, scheduler),
+//    new NullIndexSnapshotManager(),
+//    new JsonWriterFactory(index))
+//{ }
+IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
-    storage,
-    index,
-    new ZipSnapshotStrategy(".\\app_data\\snapshots"),
-    new WebBackgroundTaskScheduler(),
-    new DefaultJsonIndexManagerConfiguration()
+    new JsonStorageManager(new JsonStorageAreaObserverFactory(storage, scheduler)),
+    new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots", 2), scheduler, "10m"),
+    new JsonIndexWriter(index, scheduler)
 );
+
+
 Task run = Task.WhenAll(
     //storageManager.Observable.ForEachAsync(Reporter.Capture),
     //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),

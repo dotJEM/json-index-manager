@@ -9,5 +9,5 @@ public interface ISnapshotStrategy
     IInfoStream InfoStream { get; }
     ISnapshotTarget CreateTarget(JObject metaData);
     ISnapshotSourceWithMetadata CreateSource(int offset);
-    void CleanOldSnapshots(int maxSnapshots);
+    void CleanOldSnapshots();
 }

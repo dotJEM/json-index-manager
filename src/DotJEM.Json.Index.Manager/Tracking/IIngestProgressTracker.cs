@@ -12,7 +12,7 @@ using DotJEM.ObservableExt;
 namespace DotJEM.Json.Index.Manager.Tracking;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity -> Just dictates implementation must be explicit which is OK.
-public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>, IObservable<ITrackerState>
+public interface IIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>, IObservable<ITrackerState>
 {
     IInfoStream InfoStream { get; }
     StorageIngestState IngestState { get; }
@@ -22,7 +22,7 @@ public interface IIndexIngestProgressTracker : IObserver<IStorageChange>, IObser
 public interface ITrackerState {}
 
 
-public class IndexIngestProgressTracker : ForwarderObservable<ITrackerState>, IIndexIngestProgressTracker
+public class IngestProgressTracker : ForwarderObservable<ITrackerState>, IIngestProgressTracker
 {
     //TODO: Along with the Todo later down, this should be changed so that we can compute the state quicker.
     //      It's fine that data-in is guarded by a ConcurrentDictionary, but for data out it shouldn't matter.
