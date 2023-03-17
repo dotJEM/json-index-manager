@@ -22,31 +22,32 @@ public interface IJsonStorageAreaObserver
 public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 {
     private readonly string pollInterval;
-    private readonly IStorageArea area;
     private readonly IWebTaskScheduler scheduler;
     private readonly IStorageAreaLog log;
     private readonly ForwarderObservable<IStorageChange> observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
 
-    private IScheduledTask task;
     private long generation = 0;
     private bool initialized = false;
+    private IScheduledTask task;
+    public IStorageArea StorageArea { get; }
 
-    public string AreaName => area.Name;
+    public string AreaName => StorageArea.Name;
     public IInfoStream InfoStream => infoStream;
     public IForwarderObservable<IStorageChange> Observable => observable;
 
-    public JsonStorageAreaObserver(IStorageArea area, IWebTaskScheduler scheduler, string pollInterval = "10s")
+    public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, string pollInterval = "10s")
     {
-        this.area = area;
+        this.StorageArea = storageArea;
         this.scheduler = scheduler;
-        this.log = area.Log;
+        this.pollInterval = pollInterval;
+        this.log = storageArea.Log;
     }
     
     public async Task RunAsync()
     {
-        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, area.Name, $"Ingest starting for area '{area.Name}'.");
-        task = scheduler.Schedule($"JsonStorageAreaObserver:{area.Name}", _ => RunUpdateCheck(), pollInterval);
+        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
+        task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
         task.InfoStream.Forward(infoStream);
         await task;
     }
@@ -55,7 +56,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         task.Dispose();
         await task;
-        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, area.Name, $"Initializing for area '{area.Name}'.");
+        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
     }
 
     public void UpdateGeneration(long value)
@@ -69,18 +70,22 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         long latestGeneration = log.LatestGeneration;
         if (!initialized)
         {
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, area.Name, $"Initializing for area '{area.Name}'.");
+            BeforeInitialize();
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
             PublishChanges(changes, _ => ChangeType.Create);
             initialized = true;
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, area.Name, $"Initialization complete for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
+            AfterInitialize();
         }
         else
         {
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, area.Name, $"Checking updates for area '{area.Name}'.");
+            BeforeUpdate();
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
             PublishChanges(changes, row => row.Type);
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, area.Name, $"Done checking updates for area '{area.Name}'.");
+            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
+            AfterUpdate();
         }
 
         void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, ChangeType> changeTypeGetter) 
@@ -95,6 +100,11 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             }
         }
     }
+    public virtual void BeforeInitialize() { }
+    public virtual void AfterInitialize() { }
+
+    public virtual void BeforeUpdate() {}
+    public virtual void AfterUpdate() {}
 }
 
 public struct GenerationInfo

@@ -33,15 +33,12 @@ public class JsonStorageManager : IJsonStorageManager
 
     public JsonStorageManager(IJsonStorageAreaObserverFactory factory)
     {
-
         this.observers = factory.CreateAll()
             .Select(observer => {
                 observer.Observable.Forward(observable);
                 observer.InfoStream.Forward(infoStream);
                 return observer;
             }).ToDictionary(x => x.AreaName);
-  
-        //TODO: Setup cleaners.
     }
 
     public async Task RunAsync()
