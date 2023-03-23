@@ -1,5 +1,5 @@
-﻿using DotJEM.Diagnostics.Streams;
-using DotJEM.Json.Index.Storage.Snapshot;
+﻿using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.Snapshots;

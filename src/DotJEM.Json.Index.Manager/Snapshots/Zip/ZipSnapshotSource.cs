@@ -2,8 +2,8 @@
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -85,7 +85,7 @@ public class ZipSnapshotSource : ISnapshotSourceWithMetadata
     {
         LuceneZipSnapshot snapshot =  new LuceneZipSnapshot(Name, archive, Metadata);
         infoStream.WriteSnapshotOpenEvent(snapshot, $"Opening snapshot '{Name}'.");
-        snapshot.InfoStream.Forward(infoStream);
+        snapshot.InfoStream.Subscribe(infoStream);
         return snapshot;
     }
 

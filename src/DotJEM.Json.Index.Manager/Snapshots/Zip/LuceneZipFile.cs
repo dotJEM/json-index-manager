@@ -4,8 +4,8 @@ using System.IO.Compression;
 using System.Runtime.Remoting;
 using System.Threading;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 
@@ -27,7 +27,7 @@ public class LuceneZipFile : ILuceneFile
     {
         infoStream.WriteFileOpenEvent(this, $"Restoring file {Name}.");
         ZipStreamWrapper wrapper = new ZipStreamWrapper(archive.GetEntry(Name)?.Open(), this);
-        wrapper.InfoStream.Forward(infoStream);
+        wrapper.InfoStream.Subscribe(infoStream);
         return wrapper;
     }
 

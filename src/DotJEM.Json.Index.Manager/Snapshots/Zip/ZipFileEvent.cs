@@ -1,5 +1,5 @@
 ﻿using System;
-using DotJEM.Diagnostics.Streams;
+using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 

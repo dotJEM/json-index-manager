@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Storage;
-using DotJEM.ObservableExt;
-using DotJEM.TaskScheduler;
+using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Scheduler;
 
 namespace DotJEM.Json.Index.Manager;
 
@@ -12,7 +13,7 @@ namespace DotJEM.Json.Index.Manager;
 public interface IJsonStorageManager
 {
     IInfoStream InfoStream { get; }
-    IForwarderObservable<IStorageChange> Observable { get; }
+    IObservable<IStorageChange> Observable { get; }
     Task RunAsync();
     void UpdateGeneration(string area, long generation);
 }
@@ -20,10 +21,10 @@ public interface IJsonStorageManager
 public class JsonStorageManager : IJsonStorageManager
 {
     private readonly Dictionary<string, IJsonStorageAreaObserver> observers;
-    private readonly ForwarderObservable<IStorageChange> observable = new ();
+    private readonly Subject<IStorageChange> observable = new ();
     private readonly InfoStream<JsonStorageManager> infoStream = new ();
 
-    public IForwarderObservable<IStorageChange> Observable => observable;
+    public IObservable<IStorageChange> Observable => observable;
     public IInfoStream InfoStream => infoStream;
 
     public JsonStorageManager(IStorageContext context, IWebTaskScheduler scheduler)
@@ -35,8 +36,8 @@ public class JsonStorageManager : IJsonStorageManager
     {
         this.observers = factory.CreateAll()
             .Select(observer => {
-                observer.Observable.Forward(observable);
-                observer.InfoStream.Forward(infoStream);
+                observer.Observable.Subscribe(observable);
+                observer.InfoStream.Subscribe(infoStream);
                 return observer;
             }).ToDictionary(x => x.AreaName);
     }

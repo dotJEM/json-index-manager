@@ -8,13 +8,12 @@ using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
-using DotJEM.TaskScheduler;
+using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager;
 
@@ -43,15 +42,15 @@ public class JsonIndexManager : IJsonIndexManager
         this.writer = writer;
         
         jsonStorage.Observable.ForEachAsync(CaptureChange);
-        jsonStorage.InfoStream.Forward(infoStream);
-        snapshots.InfoStream.Forward(infoStream);
+        jsonStorage.InfoStream.Subscribe(infoStream);
+        snapshots.InfoStream.Subscribe(infoStream);
 
         tracker = new IngestProgressTracker();
         jsonStorage.InfoStream.Subscribe(tracker);
         jsonStorage.Observable.Subscribe(tracker);
         snapshots.InfoStream.Subscribe(tracker);
 
-        tracker.InfoStream.Forward(infoStream);
+        tracker.InfoStream.Subscribe(infoStream);
         tracker.ForEachAsync(state => infoStream.WriteTrackerStateEvent(state));
     }
 

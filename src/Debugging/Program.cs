@@ -9,7 +9,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
@@ -19,7 +18,8 @@ using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
-using DotJEM.TaskScheduler;
+using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Newtonsoft.Json;
@@ -44,30 +44,10 @@ index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 
-//IJsonStorageManager storageManager = new JsonStorageManager(
-//    jsonStorage,
-//    new WebTaskScheduler(),
-//    new DefaultStorageWatchConfiguration());
-//IIndexManager manager = new IndexManager(
-//    storageManager, 
-//    new IndexSnapshotManager(new ZipSnapshotStrategy(".\\app_data\\snapshots")),
-//    new JsonWriterFactory(index));
 
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
 
-//IJsonIndexManager jsonIndexManager = new JsonIndexManager(
-//    storage,
-//    index,
-//    new ZipSnapshotStrategy(".\\app_data\\snapshots", 3),
-//    new WebTaskScheduler(),
-//    new DefaultJsonIndexManagerConfiguration()
-//);
-//public JsonIndexManager(IStorageContext context, IStorageIndex index, IWebTaskScheduler scheduler)
-//    : this(new JsonStorageManager(context, scheduler),
-//    new NullIndexSnapshotManager(),
-//    new JsonWriterFactory(index))
-//{ }
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
     new JsonStorageManager(new JsonStorageAreaObserverFactory(storage, scheduler)),
@@ -77,9 +57,6 @@ IJsonIndexManager jsonIndexManager = new JsonIndexManager(
 
 
 Task run = Task.WhenAll(
-    //storageManager.Observable.ForEachAsync(Reporter.Capture),
-    //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     jsonIndexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     Task.Run(jsonIndexManager.RunAsync)
 );

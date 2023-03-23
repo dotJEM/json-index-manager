@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Manager.Tracking;
+using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager;
 

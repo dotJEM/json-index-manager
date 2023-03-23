@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json.Linq;
 using ILuceneFile = DotJEM.Json.Index.Storage.Snapshot.ILuceneFile;
 
@@ -36,7 +36,7 @@ public class LuceneZipSnapshot : ISnapshot
         LuceneZipFile CreateLuceneZipFile(string fileName, ZipArchive archive)
         {
             LuceneZipFile file = new(fileName, archive);
-            file.InfoStream.Forward(infoStream);
+            file.InfoStream.Subscribe(infoStream);
             return file;
         }
     }

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.Json.Storage.Adapter;
-using DotJEM.ObservableExt;
-using DotJEM.TaskScheduler;
+using DotJEM.ObservableExtensions.InfoStreams;
+using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager;
@@ -14,7 +15,7 @@ public interface IJsonStorageAreaObserver
 {
     string AreaName { get; }
     IInfoStream InfoStream { get; }
-    IForwarderObservable<IStorageChange> Observable { get; }
+    IObservable<IStorageChange> Observable { get; }
     Task RunAsync();
     void UpdateGeneration(long generation);
 }
@@ -24,7 +25,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     private readonly string pollInterval;
     private readonly IWebTaskScheduler scheduler;
     private readonly IStorageAreaLog log;
-    private readonly ForwarderObservable<IStorageChange> observable = new();
+    private readonly Subject<IStorageChange> observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
 
     private long generation = 0;
@@ -34,7 +35,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public string AreaName => StorageArea.Name;
     public IInfoStream InfoStream => infoStream;
-    public IForwarderObservable<IStorageChange> Observable => observable;
+    public IObservable<IStorageChange> Observable => observable;
 
     public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, string pollInterval = "10s")
     {
@@ -48,7 +49,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
         task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
-        task.InfoStream.Forward(infoStream);
+        task.InfoStream.Subscribe(infoStream);
         await task;
     }
 

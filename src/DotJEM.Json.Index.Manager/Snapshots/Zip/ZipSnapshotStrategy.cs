@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using DotJEM.Diagnostics.Streams;
 using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
@@ -30,7 +30,7 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
     {
         string[] files = GetSnapshots();
         ISnapshotSourceWithMetadata source = files.Length > offset ? ZipSnapshotSource.Open(files[offset]) : null;
-        source?.InfoStream.Forward(InfoStream);
+        source?.InfoStream.Subscribe(InfoStream);
         return source;
     }
 

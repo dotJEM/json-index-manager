@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
-using DotJEM.Diagnostics.Streams;
+using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Storage.Snapshot;
-using DotJEM.TaskScheduler;
+using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager.Snapshots;
@@ -52,7 +51,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
         this.strategy = snapshotStrategy;
         this.scheduler = scheduler;
         this.schedule = schedule;
-        this.strategy.InfoStream.Forward(infoStream);
+        this.strategy.InfoStream.Subscribe(infoStream);
     }
 
     public async Task RunAsync(IIngestProgressTracker tracker, bool restoredFromSnapshot)

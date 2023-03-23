@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using DotJEM.Json.Index.Configuration.IdentityStrategies;
-using DotJEM.TaskScheduler;
+using DotJEM.Web.Scheduler;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Newtonsoft.Json.Linq;
