@@ -105,34 +105,26 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 
     public IFieldable Serialize(string rawfield, JObject value)
     {
-        using (MemoryStream stream = new MemoryStream())
+        using MemoryStream stream = new();
+        using (GZipStream zip = new(stream, CompressionLevel.Optimal))
         {
-            using (GZipStream zip = new GZipStream(stream, CompressionLevel.Optimal))
-            {
-                JsonTextWriter jsonWriter = new JsonTextWriter(new StreamWriter(zip));
-                value.WriteTo(jsonWriter);
-                jsonWriter.Close();
-            }
-            byte[] buffer = stream.GetBuffer();
-            return new Field(rawfield, buffer, Field.Store.YES);
+            JsonTextWriter jsonWriter = new(new StreamWriter(zip));
+            value.WriteTo(jsonWriter);
+            jsonWriter.Close();
         }
-
-
+        byte[] buffer = stream.GetBuffer();
+        return new Field(rawfield, buffer, Field.Store.YES);
     }
 
     public JObject Deserialize(string rawfield, Document document)
     {
         byte[] buffer = document.GetBinaryValue(rawfield);
-        using (MemoryStream stream = new MemoryStream(buffer))
-        {
-            using (GZipStream zip = new GZipStream(stream, CompressionMode.Decompress))
-            {
-                JsonTextReader reader = new JsonTextReader(new StreamReader(zip));
-                JObject entity = (JObject)JToken.ReadFrom(reader);
-                reader.Close();
-                return entity;
-            }
-        }
+        using MemoryStream stream = new(buffer);
+        using GZipStream zip = new(stream, CompressionMode.Decompress);
+        JsonTextReader reader = new(new StreamReader(zip));
+        JObject entity = (JObject)JToken.ReadFrom(reader);
+        reader.Close();
+        return entity;
     }
 }
 
