@@ -10,7 +10,7 @@ namespace DotJEM.Json.Index.Manager;
 
 public static class IndexManagerInfoStreamExtensions
 {
-    public static void WriteStorageObserverEvent<TSource>(this IInfoStream<TSource> self, StorageObserverEventType eventType, string area, string message, [CallerMemberName] string callerMemberName = null, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
+    public static void WriteJsonSourceEvent<TSource>(this IInfoStream<TSource> self, JsonSourceEventType eventType, string area, string message, [CallerMemberName] string callerMemberName = null, [CallerFilePath] string callerFilePath = null, [CallerLineNumber] int callerLineNumber = 0)
     {
         self.WriteEvent(new StorageObserverInfoStreamEvent(typeof(TSource), InfoLevel.INFO, eventType, area, message, callerMemberName, callerFilePath, callerLineNumber));
     }
@@ -52,7 +52,7 @@ public record struct StorageAreaIngestState(
     TimeSpan Duration,
     long IngestedCount,
     GenerationInfo Generation,
-    StorageObserverEventType LastEvent)
+    JsonSourceEventType LastEvent)
 {
     public override string ToString()
     {
@@ -83,7 +83,7 @@ public class StorageIngestStateInfoStreamEvent : InfoStreamEvent
 }
 
 
-public enum StorageObserverEventType
+public enum JsonSourceEventType
 {
     Starting, Initializing, Initialized, Updating, Updated, Stopped
 }
@@ -91,9 +91,9 @@ public enum StorageObserverEventType
 public class StorageObserverInfoStreamEvent : InfoStreamEvent
 {
     public string Area { get; }
-    public StorageObserverEventType EventType { get; }
+    public JsonSourceEventType EventType { get; }
 
-    public StorageObserverInfoStreamEvent(Type source, InfoLevel level, StorageObserverEventType eventType, string area, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
+    public StorageObserverInfoStreamEvent(Type source, InfoLevel level, JsonSourceEventType eventType, string area, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
         : base(source, level, message, callerMemberName, callerFilePath, callerLineNumber)
     {
         EventType = eventType;

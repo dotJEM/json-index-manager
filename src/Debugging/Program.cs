@@ -43,14 +43,12 @@ index.Configuration.SetScoreField("$score");
 index.Configuration.SetIdentity("id");
 index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
-
-
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
 
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
-    new JsonStorageManager(new JsonStorageAreaObserverFactory(storage, scheduler)),
+    new JsonDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler)),
     new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots", 2), scheduler, "10m"),
     new JsonIndexWriter(index, scheduler)
 );
@@ -58,7 +56,7 @@ IJsonIndexManager jsonIndexManager = new JsonIndexManager(
 
 Task run = Task.WhenAll(
     jsonIndexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    Task.Run(jsonIndexManager.RunAsync)
+    jsonIndexManager.RunAsync()
 );
 
 
@@ -139,14 +137,14 @@ public static class Reporter
             case StorageObserverInfoStreamEvent sevt:
                 switch (sevt.EventType)
                 {
-                    case StorageObserverEventType.Starting:
-                    case StorageObserverEventType.Initializing:
-                    case StorageObserverEventType.Initialized:
+                    case JsonSourceEventType.Starting:
+                    case JsonSourceEventType.Initializing:
+                    case JsonSourceEventType.Initialized:
                         Console.WriteLine(evt.Message);
                         break;
-                    case StorageObserverEventType.Updating:
-                    case StorageObserverEventType.Updated:
-                    case StorageObserverEventType.Stopped:
+                    case JsonSourceEventType.Updating:
+                    case JsonSourceEventType.Updated:
+                    case JsonSourceEventType.Stopped:
                         break;
                 }
                 break;

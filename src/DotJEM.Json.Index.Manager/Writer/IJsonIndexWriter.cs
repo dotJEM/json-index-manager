@@ -47,6 +47,7 @@ public class JsonIndexWriter : IJsonIndexWriter
         this.mapper = index.Services.DocumentFactory;
         this.resolver = index.Configuration.IdentityResolver;
         this.committer = new IndexCommitter(this, AdvParsers.AdvParser.ParseTimeSpan(commitInterval), batchSize);
+
         scheduler.Schedule(nameof(IndexCommitter), _ => committer.Increment(), commitInterval);
     }
 
@@ -95,6 +96,7 @@ public class JsonIndexWriter : IJsonIndexWriter
 
         public IndexCommitter(IJsonIndexWriter owner, TimeSpan commitInterval, int batchSize)
         {
+            this.owner = owner;
             this.commitInterval = commitInterval;
             this.batchSize = batchSize;
         }
@@ -104,6 +106,7 @@ public class JsonIndexWriter : IJsonIndexWriter
             long value  = Interlocked.Increment(ref writes);
             return (value % batchSize == 0 || time.Elapsed > commitInterval) && Commit();
         }
+
 
         private bool Commit()
         {

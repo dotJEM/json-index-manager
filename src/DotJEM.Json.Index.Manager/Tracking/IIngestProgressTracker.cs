@@ -12,7 +12,7 @@ using DotJEM.ObservableExtensions.InfoStreams;
 namespace DotJEM.Json.Index.Manager.Tracking;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity -> Just dictates implementation must be explicit which is OK.
-public interface IIngestProgressTracker : IObserver<IStorageChange>, IObserver<IInfoStreamEvent>, IObservable<ITrackerState>
+public interface IIngestProgressTracker : IObserver<IJsonDocumentChange>, IObserver<IInfoStreamEvent>, IObservable<ITrackerState>
 {
     IInfoStream InfoStream { get; }
     StorageIngestState IngestState { get; }
@@ -37,7 +37,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
     public StorageIngestState IngestState => new (observerTrackers.Select(kv => kv.Value.State).ToArray());
     public SnapshotRestoreState RestoreState => new (restoreTrackers.Select(kv => kv.Value.State).ToArray());
 
-    public void OnNext(IStorageChange value)
+    public void OnNext(IJsonDocumentChange value)
     {
         observerTrackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));
         Publish(IngestState);
@@ -45,7 +45,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
     public void UpdateState(StorageAreaIngestState state)
     {
-        observerTrackers.AddOrUpdate(state.Area, s => new StorageAreaIngestStateTracker(s, StorageObserverEventType.Initialized).UpdateState(state)
+        observerTrackers.AddOrUpdate(state.Area, s => new StorageAreaIngestStateTracker(s, JsonSourceEventType.Initialized).UpdateState(state)
             , (s, tracker) => tracker.UpdateState(state));
     }
 
@@ -113,14 +113,14 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
     {
         switch (soe.EventType)
         {
-            case StorageObserverEventType.Starting:
+            case JsonSourceEventType.Starting:
                 observerTrackers.GetOrAdd(soe.Area, new StorageAreaIngestStateTracker(soe.Area, soe.EventType));
                 break;
-            case StorageObserverEventType.Initializing:
-            case StorageObserverEventType.Updating:
-            case StorageObserverEventType.Initialized:
-            case StorageObserverEventType.Updated:
-            case StorageObserverEventType.Stopped:
+            case JsonSourceEventType.Initializing:
+            case JsonSourceEventType.Updating:
+            case JsonSourceEventType.Initialized:
+            case JsonSourceEventType.Updated:
+            case JsonSourceEventType.Stopped:
             default:
                 observerTrackers.AddOrUpdate(soe.Area, _ => new StorageAreaIngestStateTracker(soe.Area, soe.EventType), (_, state) => state.UpdateState(soe.EventType));
                 break;
@@ -133,8 +133,8 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
     void IObserver<IInfoStreamEvent>.OnError(Exception error) { }
     void IObserver<IInfoStreamEvent>.OnCompleted() { }
-    void IObserver<IStorageChange>.OnError(Exception error) { }
-    void IObserver<IStorageChange>.OnCompleted() { }
+    void IObserver<IJsonDocumentChange>.OnError(Exception error) { }
+    void IObserver<IJsonDocumentChange>.OnCompleted() { }
 
     private class IndexFileRestoreStateTracker
     {
@@ -162,14 +162,14 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
     {
         private readonly Stopwatch timer = Stopwatch.StartNew();
         public StorageAreaIngestState State { get; private set; }
-        public StorageAreaIngestStateTracker(string area, StorageObserverEventType state)
+        public StorageAreaIngestStateTracker(string area, JsonSourceEventType state)
         {
             State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state);
         }
 
-        public StorageAreaIngestStateTracker UpdateState(StorageObserverEventType state)
+        public StorageAreaIngestStateTracker UpdateState(JsonSourceEventType state)
         {
-            if(state is StorageObserverEventType.Initialized or StorageObserverEventType.Updated or StorageObserverEventType.Stopped)
+            if(state is JsonSourceEventType.Initialized or JsonSourceEventType.Updated or JsonSourceEventType.Stopped)
                 timer.Stop();
 
             State = State with { LastEvent = state, Duration = timer.Elapsed};

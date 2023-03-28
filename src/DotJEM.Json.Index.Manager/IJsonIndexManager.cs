@@ -26,7 +26,7 @@ public interface IJsonIndexManager
 
 public class JsonIndexManager : IJsonIndexManager
 {
-    private readonly IJsonStorageManager jsonStorage;
+    private readonly IJsonDocumentSource jsonDocumentSource;
     private readonly IJsonIndexSnapshotManager snapshots;
     private readonly IIngestProgressTracker tracker;
     private readonly IJsonIndexWriter writer;
@@ -35,19 +35,19 @@ public class JsonIndexManager : IJsonIndexManager
 
     public IInfoStream InfoStream => infoStream;
 
-    public JsonIndexManager(IJsonStorageManager jsonStorage, IJsonIndexSnapshotManager snapshots, IJsonIndexWriter writer)
+    public JsonIndexManager(IJsonDocumentSource jsonDocumentSource, IJsonIndexSnapshotManager snapshots, IJsonIndexWriter writer)
     {
-        this.jsonStorage = jsonStorage;
+        this.jsonDocumentSource = jsonDocumentSource;
         this.snapshots = snapshots;
         this.writer = writer;
         
-        jsonStorage.Observable.ForEachAsync(CaptureChange);
-        jsonStorage.InfoStream.Subscribe(infoStream);
+        jsonDocumentSource.Observable.ForEachAsync(CaptureChange);
+        jsonDocumentSource.InfoStream.Subscribe(infoStream);
         snapshots.InfoStream.Subscribe(infoStream);
 
         tracker = new IngestProgressTracker();
-        jsonStorage.InfoStream.Subscribe(tracker);
-        jsonStorage.Observable.Subscribe(tracker);
+        jsonDocumentSource.InfoStream.Subscribe(tracker);
+        jsonDocumentSource.Observable.Subscribe(tracker);
         snapshots.InfoStream.Subscribe(tracker);
 
         tracker.InfoStream.Subscribe(infoStream);
@@ -60,7 +60,7 @@ public class JsonIndexManager : IJsonIndexManager
         infoStream.WriteInfo($"Index restored from a snapshot: {restoredFromSnapshot}.");
         await Task.WhenAll(
             snapshots.RunAsync(tracker, restoredFromSnapshot), 
-            jsonStorage.RunAsync()).ConfigureAwait(false);
+            jsonDocumentSource.RunAsync()).ConfigureAwait(false);
     }
 
     public async Task<bool> TakeSnapshotAsync()
@@ -72,30 +72,32 @@ public class JsonIndexManager : IJsonIndexManager
     public async Task<bool> RestoreSnapshotAsync()
     {
         RestoreSnapshotResult restoreResult = await snapshots.RestoreSnapshotAsync();
+        if (!restoreResult.RestoredFromSnapshot)
+            return false;
+
         foreach (StorageAreaIngestState state in restoreResult.State.Areas)
         {
-            jsonStorage.UpdateGeneration(state.Area, state.Generation.Current);
+            jsonDocumentSource.UpdateGeneration(state.Area, state.Generation.Current);
             tracker.UpdateState(state);
         }
-        return restoreResult.RestoredFromSnapshot;
+
+        return true;
     }
 
-    private void CaptureChange(IStorageChange change)
+    private void CaptureChange(IJsonDocumentChange change)
     {
         try
         {
             switch (change.Type)
             {
-                case ChangeType.Create:
+                case JsonChangeType.Create:
                     writer.Create(change.Entity);
                     break;
-                case ChangeType.Update:
+                case JsonChangeType.Update:
                     writer.Write(change.Entity);
                     break;
-                case ChangeType.Delete:
+                case JsonChangeType.Delete:
                     writer.Delete(change.Entity);
-                    break;
-                case ChangeType.Faulty:
                     break;
             }
         }
@@ -116,10 +118,10 @@ public class Initialization
             if(state is not StorageIngestState ingestState)
                 return;
 
-            StorageObserverEventType[] states = ingestState.Areas
+            JsonSourceEventType[] states = ingestState.Areas
                 .Select(x => x.LastEvent)
                 .ToArray();
-            if (states.All(state => state is StorageObserverEventType.Updated or StorageObserverEventType.Initialized))
+            if (states.All(state => state is JsonSourceEventType.Updated or JsonSourceEventType.Initialized))
                 completionSource.SetResult(true);
         }, CancellationToken.None);
         return completionSource.Task;

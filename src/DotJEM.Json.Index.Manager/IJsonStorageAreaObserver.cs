@@ -15,7 +15,7 @@ public interface IJsonStorageAreaObserver
 {
     string AreaName { get; }
     IInfoStream InfoStream { get; }
-    IObservable<IStorageChange> Observable { get; }
+    IObservable<IJsonDocumentChange> Observable { get; }
     Task RunAsync();
     void UpdateGeneration(long generation);
 }
@@ -25,7 +25,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     private readonly string pollInterval;
     private readonly IWebTaskScheduler scheduler;
     private readonly IStorageAreaLog log;
-    private readonly Subject<IStorageChange> observable = new();
+    private readonly ChangeStream observable = new();
     private readonly IInfoStream<JsonStorageAreaObserver> infoStream = new InfoStream<JsonStorageAreaObserver>();
 
     private long generation = 0;
@@ -35,7 +35,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public string AreaName => StorageArea.Name;
     public IInfoStream InfoStream => infoStream;
-    public IObservable<IStorageChange> Observable => observable;
+    public IObservable<IJsonDocumentChange> Observable => observable;
 
     public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, string pollInterval = "10s")
     {
@@ -47,7 +47,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     
     public async Task RunAsync()
     {
-        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
+        infoStream.WriteJsonSourceEvent(JsonSourceEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
         task = scheduler.Schedule($"JsonStorageAreaObserver:{StorageArea.Name}", _ => RunUpdateCheck(), pollInterval);
         task.InfoStream.Subscribe(infoStream);
         await task;
@@ -57,7 +57,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     {
         task.Dispose();
         await task;
-        infoStream.WriteStorageObserverEvent(StorageObserverEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
+        infoStream.WriteJsonSourceEvent(JsonSourceEventType.Stopped, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
     }
 
     public void UpdateGeneration(long value)
@@ -72,24 +72,35 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
         if (!initialized)
         {
             BeforeInitialize();
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initializing, StorageArea.Name, $"Initializing for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
-            PublishChanges(changes, _ => ChangeType.Create);
+            PublishChanges(changes, _ => JsonChangeType.Create);
             initialized = true;
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Initialized, StorageArea.Name, $"Initialization complete for storageArea '{StorageArea.Name}'.");
             AfterInitialize();
         }
         else
         {
             BeforeUpdate();
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updating, StorageArea.Name, $"Checking updates for storageArea '{StorageArea.Name}'.");
             using IStorageAreaLogReader changes = log.OpenLogReader(generation, initialized);
-            PublishChanges(changes, row => row.Type);
-            infoStream.WriteStorageObserverEvent(StorageObserverEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
+            PublishChanges(changes, row => MapChange(row.Type));
+            infoStream.WriteJsonSourceEvent(JsonSourceEventType.Updated, StorageArea.Name, $"Done checking updates for storageArea '{StorageArea.Name}'.");
             AfterUpdate();
         }
 
-        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, ChangeType> changeTypeGetter) 
+        JsonChangeType MapChange(ChangeType type)
+        {
+            return type switch
+            {
+                ChangeType.Create => JsonChangeType.Create,
+                ChangeType.Update => JsonChangeType.Update,
+                ChangeType.Delete => JsonChangeType.Delete,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
+
+        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, JsonChangeType> changeTypeGetter) 
         {
             foreach (IChangeLogRow change in changes)
             {
@@ -97,7 +108,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
                 if (change.Type == ChangeType.Faulty)
                     continue;
 
-                observable.Publish(new StorageChange(change.Area, changeTypeGetter(change), change.CreateEntity(), new GenerationInfo(change.Generation, latestGeneration)));
+                observable.Publish(new JsonDocumentChange(change.Area, changeTypeGetter(change), change.CreateEntity(), new GenerationInfo(change.Generation, latestGeneration)));
             }
         }
     }
@@ -122,29 +133,5 @@ public struct GenerationInfo
     public static GenerationInfo operator + (GenerationInfo left, GenerationInfo right)
     {
         return new GenerationInfo(left.Current + right.Current, left.Latest + right.Latest);
-    }
-}
-
-public interface IStorageChange
-{
-    string Area { get; }
-    GenerationInfo Generation { get; }
-    ChangeType Type { get; }
-    JObject Entity { get; }
-}
-
-public struct StorageChange : IStorageChange
-{
-    public GenerationInfo Generation { get; }
-    public ChangeType Type { get; }
-    public string Area { get; }
-    public JObject Entity { get; }
-
-    public StorageChange(string area, ChangeType type, JObject entity, GenerationInfo generationInfo)
-    {
-        Generation = generationInfo;
-        Type = type;
-        Area = area;
-        Entity = entity;
     }
 }
