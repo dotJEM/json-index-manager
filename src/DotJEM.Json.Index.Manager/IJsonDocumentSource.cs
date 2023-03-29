@@ -29,6 +29,7 @@ public interface IJsonDocumentChange
     JObject Entity { get; }
 }
 
+public class ChangeStream : BasicSubject<IJsonDocumentChange> { }
 
 public struct JsonDocumentChange : IJsonDocumentChange
 {
@@ -90,7 +91,4 @@ public class JsonDocumentSource : IJsonDocumentSource
 
         observer.UpdateGeneration(generation);
     }
-}
-public class ChangeStream : BasicSubject<IJsonDocumentChange>
-{
 }
