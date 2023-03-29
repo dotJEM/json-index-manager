@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using DotJEM.Json.Storage;
 using DotJEM.ObservableExtensions;
 using DotJEM.ObservableExtensions.InfoStreams;
-using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager;
@@ -45,48 +41,25 @@ public struct JsonDocumentChange : IJsonDocumentChange
     }
 }
 
+public struct GenerationInfo
+{
+    public long Current { get; }
+    public long Latest { get; }
+
+    public GenerationInfo(long current, long latest)
+    {
+        Current = current;
+        Latest = latest;
+    }
+
+    public static GenerationInfo operator +(GenerationInfo left, GenerationInfo right)
+    {
+        return new GenerationInfo(left.Current + right.Current, left.Latest + right.Latest);
+    }
+}
+
+
 public enum JsonChangeType
 {
     Create, Update, Delete
-}
-
-public class JsonDocumentSource : IJsonDocumentSource
-{
-    private readonly Dictionary<string, IJsonStorageAreaObserver> observers;
-    private readonly ChangeStream observable = new ();
-    private readonly InfoStream<JsonDocumentSource> infoStream = new ();
-
-    public IObservable<IJsonDocumentChange> Observable => observable;
-    public IInfoStream InfoStream => infoStream;
-
-    public JsonDocumentSource(IStorageContext context, IWebTaskScheduler scheduler)
-        : this(new JsonStorageAreaObserverFactory(context, scheduler))
-    {
-    }
-
-    public JsonDocumentSource(IJsonStorageAreaObserverFactory factory)
-    {
-        this.observers = factory.CreateAll()
-            .Select(observer => {
-                observer.Observable.Subscribe(observable);
-                observer.InfoStream.Subscribe(infoStream);
-                return observer;
-            }).ToDictionary(x => x.AreaName);
-
-    }
-
-    public async Task RunAsync()
-    {
-        await Task.WhenAll(
-            observers.Values.Select(async observer => await observer.RunAsync().ConfigureAwait(false))
-        ).ConfigureAwait(false);
-    }
-
-    public void UpdateGeneration(string area, long generation)
-    {
-        if (!observers.TryGetValue(area, out IJsonStorageAreaObserver observer))
-            return; // TODO?
-
-        observer.UpdateGeneration(generation);
-    }
 }

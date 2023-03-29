@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Debugging.Adapter;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
@@ -48,7 +49,7 @@ Directory.CreateDirectory(".\\app_data\\index");
 
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
-    new JsonDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler)),
+    new JsonStorageDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler)),
     new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots", 2), scheduler, "10m"),
     new JsonIndexWriter(index, scheduler)
 );

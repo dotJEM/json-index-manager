@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
+using DotJEM.Json.Index.Manager;
+using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
-using DotJEM.Json.Storage.Adapter;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 
-namespace DotJEM.Json.Index.Manager;
+namespace Debugging.Adapter;
 
 public interface IJsonStorageAreaObserver
 {
@@ -114,21 +115,4 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public virtual void BeforeUpdate() {}
     public virtual void AfterUpdate() {}
-}
-
-public struct GenerationInfo
-{
-    public long Current { get; }
-    public long Latest { get; }
-
-    public GenerationInfo(long current, long latest)
-    {
-        Current = current;
-        Latest = latest;
-    }
-
-    public static GenerationInfo operator + (GenerationInfo left, GenerationInfo right)
-    {
-        return new GenerationInfo(left.Current + right.Current, left.Latest + right.Latest);
-    }
 }
