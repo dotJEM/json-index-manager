@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DotJEM.Json.Storage;
-using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.ObservableExtensions;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;

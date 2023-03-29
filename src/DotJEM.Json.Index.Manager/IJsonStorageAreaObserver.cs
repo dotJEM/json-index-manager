@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.Json.Storage.Adapter;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
-using Newtonsoft.Json.Linq;
 
 namespace DotJEM.Json.Index.Manager;
 

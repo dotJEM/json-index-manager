@@ -1,18 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Packaging;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.Writer;
-using DotJEM.Json.Storage;
-using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager;
