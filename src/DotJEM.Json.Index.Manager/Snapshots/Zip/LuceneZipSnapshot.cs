@@ -32,7 +32,6 @@ public class LuceneZipSnapshot : ISnapshot
         SegmentsGenFile = CreateLuceneZipFile((string)metadata["segmentsGenFile"], archive);
         Generation = (long)metadata["generation"];
         infoStream.WriteSnapshotOpenEvent(this, "");
-
         LuceneZipFile CreateLuceneZipFile(string fileName, ZipArchive archive)
         {
             LuceneZipFile file = new(fileName, archive);

@@ -72,14 +72,14 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
         {
             case FileEventType.OPEN:
                 restoreTrackers.AddOrUpdate(
-                    sne.File.Name,
+                    sne.FileName,
                     name => new IndexFileRestoreStateTracker(name),
                     (name, tracker) => tracker.Restoring()
                 );
                 break;
             case FileEventType.CLOSE:
                 restoreTrackers.AddOrUpdate(
-                    sne.File.Name,
+                    sne.FileName,
                     name => new IndexFileRestoreStateTracker(name),
                     (name, tracker) => tracker.Complete()
                 );
@@ -95,10 +95,10 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
         switch (sne.EventType)
         {
             case FileEventType.OPEN:
-                restoreTrackers.TryAdd(sne.Snapshot.SegmentsFile.Name, new IndexFileRestoreStateTracker(sne.Snapshot.SegmentsFile.Name));
-                restoreTrackers.TryAdd(sne.Snapshot.SegmentsGenFile.Name, new IndexFileRestoreStateTracker(sne.Snapshot.SegmentsGenFile.Name));
-                foreach (ILuceneFile file in sne.Snapshot.Files)
-                    restoreTrackers.TryAdd(file.Name, new IndexFileRestoreStateTracker(file.Name));
+                restoreTrackers.TryAdd(sne.SegmentsFileName, new IndexFileRestoreStateTracker(sne.SegmentsFileName));
+                restoreTrackers.TryAdd(sne.SegmentsGenFileName, new IndexFileRestoreStateTracker(sne.SegmentsGenFileName));
+                foreach (string file in sne.SnapshotFiles)
+                    restoreTrackers.TryAdd(file, new IndexFileRestoreStateTracker(file));
                 break;
             case FileEventType.CLOSE:
                 break;

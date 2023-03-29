@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using DotJEM.Json.Storage;
+﻿using DotJEM.Json.Storage;
 using DotJEM.Web.Scheduler;
 
-namespace Debugging.Adapter;
+namespace DotJEM.Json.Index.Manager.V1Adapter;
 
 public interface IJsonStorageAreaObserverFactory
 {

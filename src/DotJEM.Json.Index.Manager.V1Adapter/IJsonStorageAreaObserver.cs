@@ -1,13 +1,10 @@
-﻿using System;
-using System.Threading.Tasks;
-using DotJEM.Json.Index.Manager;
-using DotJEM.Json.Storage.Adapter;
+﻿using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 
-namespace Debugging.Adapter;
+namespace DotJEM.Json.Index.Manager.V1Adapter;
 
 public interface IJsonStorageAreaObserver
 {
@@ -37,12 +34,12 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public JsonStorageAreaObserver(IStorageArea storageArea, IWebTaskScheduler scheduler, string pollInterval = "10s")
     {
-        this.StorageArea = storageArea;
+        StorageArea = storageArea;
         this.scheduler = scheduler;
         this.pollInterval = pollInterval;
-        this.log = storageArea.Log;
+        log = storageArea.Log;
     }
-    
+
     public async Task RunAsync()
     {
         infoStream.WriteJsonSourceEvent(JsonSourceEventType.Starting, StorageArea.Name, $"Ingest starting for storageArea '{StorageArea.Name}'.");
@@ -60,12 +57,12 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
 
     public void UpdateGeneration(long value)
     {
-        this.generation = value;
-        this.initialized = true;
+        generation = value;
+        initialized = true;
     }
 
     public void RunUpdateCheck()
-    { 
+    {
         long latestGeneration = log.LatestGeneration;
         if (!initialized)
         {
@@ -98,7 +95,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
             };
         }
 
-        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, JsonChangeType> changeTypeGetter) 
+        void PublishChanges(IStorageAreaLogReader changes, Func<IChangeLogRow, JsonChangeType> changeTypeGetter)
         {
             foreach (IChangeLogRow change in changes)
             {
@@ -113,6 +110,6 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
     public virtual void BeforeInitialize() { }
     public virtual void AfterInitialize() { }
 
-    public virtual void BeforeUpdate() {}
-    public virtual void AfterUpdate() {}
+    public virtual void BeforeUpdate() { }
+    public virtual void AfterUpdate() { }
 }

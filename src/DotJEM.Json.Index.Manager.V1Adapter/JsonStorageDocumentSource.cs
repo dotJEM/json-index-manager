@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DotJEM.Json.Index.Manager;
-using DotJEM.Json.Storage;
+﻿using DotJEM.Json.Storage;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 
-namespace Debugging.Adapter;
+namespace DotJEM.Json.Index.Manager.V1Adapter;
 
 public class JsonStorageDocumentSource : IJsonDocumentSource
 {
     private readonly Dictionary<string, IJsonStorageAreaObserver> observers;
-    private readonly ChangeStream observable = new ();
-    private readonly InfoStream<JsonStorageDocumentSource> infoStream = new ();
+    private readonly ChangeStream observable = new();
+    private readonly InfoStream<JsonStorageDocumentSource> infoStream = new();
 
     public IObservable<IJsonDocumentChange> Observable => observable;
     public IInfoStream InfoStream => infoStream;
@@ -25,8 +20,9 @@ public class JsonStorageDocumentSource : IJsonDocumentSource
 
     public JsonStorageDocumentSource(IJsonStorageAreaObserverFactory factory)
     {
-        this.observers = factory.CreateAll()
-            .Select(observer => {
+        observers = factory.CreateAll()
+            .Select(observer =>
+            {
                 observer.Observable.Subscribe(observable);
                 observer.InfoStream.Subscribe(infoStream);
                 return observer;

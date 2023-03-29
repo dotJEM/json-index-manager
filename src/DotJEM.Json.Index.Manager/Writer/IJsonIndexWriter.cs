@@ -16,6 +16,10 @@ public interface IJsonIndexWriter
     void Delete(JObject entity);
     void Commit();
     void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes);
+    void Optimize();
+    void Optimize(int maxNumSegments);
+    void ExpungeDeletes();
+    void MaybeMerge();
 }
 
 public class JsonIndexWriter : IJsonIndexWriter
@@ -74,11 +78,7 @@ public class JsonIndexWriter : IJsonIndexWriter
     }
 
 
-    public void Commit()
-    {
-        Writer.Commit();
-    }
-
+    public void Commit() => Writer.Commit();
     public void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes) => Writer.Flush(triggerMerge, flushDocStores, flushDeletes);
     public void Optimize() => Writer.Optimize();
     public void Optimize(int maxNumSegments) => Writer.Optimize(maxNumSegments);
@@ -92,7 +92,7 @@ public class JsonIndexWriter : IJsonIndexWriter
         private readonly IJsonIndexWriter owner;
 
         private long writes = 0;
-        private Stopwatch time = Stopwatch.StartNew();
+        private readonly Stopwatch time = Stopwatch.StartNew();
 
         public IndexCommitter(IJsonIndexWriter owner, TimeSpan commitInterval, int batchSize)
         {
@@ -101,18 +101,18 @@ public class JsonIndexWriter : IJsonIndexWriter
             this.batchSize = batchSize;
         }
 
-        public bool Increment()
+        public void Increment()
         {
             long value  = Interlocked.Increment(ref writes);
-            return (value % batchSize == 0 || time.Elapsed > commitInterval) && Commit();
+            if(value % batchSize == 0 || time.Elapsed > commitInterval)
+                Commit();
         }
 
 
-        private bool Commit()
+        private void Commit()
         {
             owner.Commit();
             time.Restart();
-            return true;
         }
     }
 }
