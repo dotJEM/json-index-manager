@@ -7,9 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.Json.Index.Manager",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Debugging", "Debugging\Debugging.csproj", "{C2FD6CE8-BAF8-4AC2-922C-FE91DFD666FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Index.Manager.V1Adapter", "DotJEM.Json.Index.Manager.V1Adapter\DotJEM.Json.Index.Manager.V1Adapter.csproj", "{C3B5473E-6900-4E6C-A86E-8796329E27E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.Json.Index.Manager.V1Adapter", "DotJEM.Json.Index.Manager.V1Adapter\DotJEM.Json.Index.Manager.V1Adapter.csproj", "{C3B5473E-6900-4E6C-A86E-8796329E27E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotJEM.Json.Index.Manager.Test", "DotJEM.Json.Index.Manager.Test\DotJEM.Json.Index.Manager.Test.csproj", "{DF312BF3-8140-4347-AA04-C9BEC1195531}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotJEM.Json.Index.Manager.Test", "DotJEM.Json.Index.Manager.Test\DotJEM.Json.Index.Manager.Test.csproj", "{DF312BF3-8140-4347-AA04-C9BEC1195531}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stress", "Stress\Stress.csproj", "{E42127C4-4620-4973-AA15-F715E1F4C3D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{DF312BF3-8140-4347-AA04-C9BEC1195531}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF312BF3-8140-4347-AA04-C9BEC1195531}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF312BF3-8140-4347-AA04-C9BEC1195531}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E42127C4-4620-4973-AA15-F715E1F4C3D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E42127C4-4620-4973-AA15-F715E1F4C3D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E42127C4-4620-4973-AA15-F715E1F4C3D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E42127C4-4620-4973-AA15-F715E1F4C3D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

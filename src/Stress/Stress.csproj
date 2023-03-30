@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="objecthydrator" Version="1.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DotJEM.Json.Index.Manager.V1Adapter\DotJEM.Json.Index.Manager.V1Adapter.csproj" />
+		<ProjectReference Include="..\DotJEM.Json.Index.Manager\DotJEM.Json.Index.Manager.csproj" />
+	</ItemGroup>
+</Project>
