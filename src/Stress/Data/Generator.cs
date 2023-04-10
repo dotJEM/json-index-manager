@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using DotJEM.Json.Storage.Adapter;
 using Foundation.ObjectHydrator;
-using Foundation.ObjectHydrator.Interfaces;
-using Foundation.ObjectHydrator.Generators;
 using Newtonsoft.Json.Linq;
 
 namespace Stress.Data;
@@ -18,7 +15,7 @@ public class StressDataGenerator
     public bool stop = false;
     private readonly IStorageArea[] areas;
     private readonly Random random = new Random();
-    private readonly Dictionary<Type, object> generators = new Dictionary<Type, object>();
+    private readonly RecordGeneratorProvider provider = new RecordGeneratorProvider();
 
     public async Task StartAsync()
     {
@@ -29,9 +26,17 @@ public class StressDataGenerator
     {
         while (!stop)
         {
-            foreach (JObject doc in GenerateAll())
-                area.Insert((string)doc["contentType"], doc);
-            await Task.Delay(random.Next(100, 2000));
+            try
+            {
+                foreach (JObject doc in GenerateAll())
+                    area.Insert((string)doc["contentType"], doc);
+                await Task.Delay(random.Next(100, 2000));
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
     }
 
@@ -45,16 +50,11 @@ public class StressDataGenerator
 
     private IEnumerable<JObject> Generate<T>()
     {
-        Hydrator<T> generator;
-        if(!generators.TryGetValue(typeof(T), out object untyped))
-            generators.Add(typeof(T), generator = new Hydrator<T>());
-        else
-            generator = (Hydrator<T>)untyped;
+        RecordGenerator<T> generator = provider.Resolve<T>();
         try
         {
-            
             return generator
-                .GetList(random.Next(1, 16))
+                .Generate(random.Next(1, 16))
                 .Select(x =>
                 {
                     JObject json = JObject.FromObject(x);
@@ -80,15 +80,16 @@ public class StressDataGenerator
         this.areas = areas;
 
 
-        Add(new Hydrator<Person>()
+        provider.Resolve<Person>()
             .WithFirstName(x => x.FirstName)
             .WithLastName(x => x.LastName)
             .WithDate(x => x.BirthDate, new DateTime(1900, 1, 1), DateTime.Today)
-            .WithAmericanPhone(x => x.Phone)
-        );
+            .WithAmericanPhone(x => x.Phone);
+        provider.Resolve<Country>();
+        provider.Resolve<City>();
+        provider.Resolve<Game>();
     }
 
-    private void Add<T>(Hydrator<T> generator) => generators.Add(typeof(T), generator);
 }
 
 
@@ -100,32 +101,4 @@ public record Game(string Name, string Publisher, DateTime ReleaseDate, long Pla
 public enum Gender
 {
     Male, Female, Other
-}
-
-public class RecordGenerator<T> : IGenerator<T>
-{
-    private readonly ConstructorInfo ctor;
-    private readonly ParameterInfo[] arguments;
-
-    public RecordGenerator()
-        : this(ctors => ctors.First()) { }
-
-    public RecordGenerator(Func<ConstructorInfo[], ConstructorInfo> ctorSelector)
-        : this(ctorSelector(typeof(T).GetConstructors())) {}
-
-    public RecordGenerator(ConstructorInfo ctor)
-    {
-        this.ctor = ctor;
-        this.arguments = ctor.GetParameters();
-    }
-    
-    public IEnumerable<T> Generate(int count)
-    {
-        return Enumerable.Range(0, count).Select(x => Generate());
-    }
-
-    public T Generate()
-    {
-        throw new NotImplementedException();
-    }
 }

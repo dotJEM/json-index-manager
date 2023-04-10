@@ -54,7 +54,8 @@ StressDataGenerator generator = new StressDataGenerator(
     storage.Area("Trashcan")
 );
 Task genTask = generator.StartAsync();
-await Task.Delay(1000);
+await Task.Delay(5000);
+
 
 IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(Version.LUCENE_30, new SortedSet<string>())));
 index.Configuration.SetTypeResolver("contentType");
