@@ -51,11 +51,29 @@ public record struct StorageAreaIngestState(
     TimeSpan Duration,
     long IngestedCount,
     GenerationInfo Generation,
-    JsonSourceEventType LastEvent)
+    JsonSourceEventType LastEvent,
+    long UpdatedCount,
+    long UpdateCycles,
+    TimeSpan TotalUpdateDuration,
+    TimeSpan LastUpdateDuration)
 {
     public override string ToString()
     {
-        return $" -> [{Duration:d\\.hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount:N0} objects indexed. ({IngestedCount / Duration.TotalSeconds:F} / sec) - {LastEvent}";
+        switch (LastEvent)
+        {
+            case JsonSourceEventType.Starting:
+            case JsonSourceEventType.Initializing:
+            case JsonSourceEventType.Initialized:
+                return $" -> [{LastEvent}:{Duration:hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount + UpdatedCount:N0} objects indexed."
+                       + $" ({IngestedCount / Duration.TotalSeconds:F} / sec)";
+            case JsonSourceEventType.Updating:
+            case JsonSourceEventType.Updated:
+            case JsonSourceEventType.Stopped:
+                return $" -> [{LastEvent}:{LastUpdateDuration.TotalMilliseconds}ms] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount + UpdatedCount:N0} objects indexed."
+                       + $" Update cycle (avg): {UpdateCycles} ({(TotalUpdateDuration.TotalMilliseconds/UpdateCycles):##.000}ms)";
+        }
+
+        return "???";
     }
 }
 public class TrackerStateInfoStreamEvent : InfoStreamEvent

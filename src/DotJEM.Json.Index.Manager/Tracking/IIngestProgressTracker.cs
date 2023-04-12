@@ -116,8 +116,8 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
                 observerTrackers.GetOrAdd(soe.Area, new StorageAreaIngestStateTracker(soe.Area, soe.EventType));
                 break;
             case JsonSourceEventType.Initializing:
-            case JsonSourceEventType.Updating:
             case JsonSourceEventType.Initialized:
+            case JsonSourceEventType.Updating:
             case JsonSourceEventType.Updated:
             case JsonSourceEventType.Stopped:
             default:
@@ -159,25 +159,64 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
     private class StorageAreaIngestStateTracker
     {
-        private readonly Stopwatch timer = Stopwatch.StartNew();
+        private readonly Stopwatch initTimer = new ();
+        private readonly Stopwatch updateTimer =  new ();
+        private bool initializing = true;
+
         public StorageAreaIngestState State { get; private set; }
+
         public StorageAreaIngestStateTracker(string area, JsonSourceEventType state)
         {
-            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state);
+            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state, 0, 0, TimeSpan.Zero, TimeSpan.Zero);
         }
 
         public StorageAreaIngestStateTracker UpdateState(JsonSourceEventType state)
         {
-            if(state is JsonSourceEventType.Initialized or JsonSourceEventType.Updated or JsonSourceEventType.Stopped)
-                timer.Stop();
+            switch (state)
+            {
+                case JsonSourceEventType.Initializing:
+                    initTimer.Restart();
+                    initializing = true;
+                    break;
 
-            State = State with { LastEvent = state, Duration = timer.Elapsed};
+                case JsonSourceEventType.Updating:
+                    updateTimer.Restart();
+                    initializing = false;
+                    break;
+
+                case JsonSourceEventType.Initialized:
+                    initTimer.Stop();
+                    initializing = false;
+                    State = State with { LastEvent = state, Duration = initTimer.Elapsed};
+                    break;
+                
+                case JsonSourceEventType.Updated:
+                    updateTimer.Stop();
+                    initializing = false;
+                    State = State with
+                    {
+                        LastEvent = state, 
+                        UpdateCycles = State.UpdateCycles + 1,
+                        TotalUpdateDuration = State.TotalUpdateDuration + updateTimer.Elapsed, 
+                        LastUpdateDuration = updateTimer.Elapsed
+                    };
+                    break;
+
+            }
             return this;
         }
 
         public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation)
         {
-            State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
+            if (initializing)
+            {
+                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
+            }
+            else
+            {
+                State = State with { UpdatedCount = State.UpdatedCount+1, Generation = generation };
+
+            }
             return this;
         }
 

@@ -29,13 +29,22 @@ public class StressDataGenerator
             try
             {
                 foreach (JObject doc in GenerateAll())
-                    area.Insert((string)doc["contentType"], doc);
+                {
+                    try
+                    {
+                        area.Insert((string)doc["contentType"], doc);
+                    }
+                    catch (Exception e)
+                    {
+                        await Task.Delay(random.Next(10, 100));
+                        area.Insert((string)doc["contentType"], doc);
+                        // ignored
+                    }
+                }
                 await Task.Delay(random.Next(100, 2000));
-
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
             }
         }
     }

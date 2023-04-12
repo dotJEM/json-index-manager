@@ -70,7 +70,7 @@ Directory.CreateDirectory(".\\app_data\\index");
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
     new JsonStorageDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler)),
-    new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots", 2), scheduler, "10m"),
+    new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots"), scheduler, "30m"),
     new JsonIndexWriter(index, scheduler)
 );
 
@@ -112,14 +112,6 @@ while (true)
 EXIT:
 await run;
 
-//Task setup = Task.WhenAll(
-//    storageManager.Observable.ForEachAsync(Reporter.Capture)),
-//    storageManager.Inf
-//    );
-
-//storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-//manager.InfoStream.ForEachAsync(Reporter.CaptureInfo)
-
 
 public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 {
@@ -152,40 +144,33 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 public static class Reporter
 {
     private static ITrackerState lastState;
- 
+    private static IInfoStreamEvent lastEvent;
+    private static DateTime lastReport = DateTime.Now;
+
     public static void CaptureInfo(IInfoStreamEvent evt)
     {
         switch (evt)
         {
-            case StorageObserverInfoStreamEvent sevt:
-                switch (sevt.EventType)
-                {
-                    case JsonSourceEventType.Starting:
-                    case JsonSourceEventType.Initializing:
-                    case JsonSourceEventType.Initialized:
-                        Console.WriteLine(evt.Message);
-                        break;
-                    case JsonSourceEventType.Updating:
-                    case JsonSourceEventType.Updated:
-                    case JsonSourceEventType.Stopped:
-                        break;
-                }
-                break;
-
             case TrackerStateInfoStreamEvent ievt :
                 lastState = ievt.State;
                 break;
 
             default:
-                Console.WriteLine(evt.Message);
+                lastEvent = evt;
                 break;
         }
+        Report();
     }
 
 
     public static void Report()
     {
-        Console.WriteLine(lastState);
+        if(DateTime.Now - lastReport < TimeSpan.FromSeconds(2))
+            return;
 
+        lastReport = DateTime.Now;
+        Console.Clear();
+        Console.WriteLine(lastEvent.Message);
+        Console.WriteLine(lastState);
     }
 }
