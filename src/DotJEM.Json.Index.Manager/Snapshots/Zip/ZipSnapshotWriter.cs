@@ -47,7 +47,6 @@ public class ZipSnapshotWriter : ISnapshotWriter
     public ZipSnapshotWriter WriteMetaData(IndexCommit commit)
     {
         metadata["generation"] = commit.Generation;
-        metadata["version"] = commit.Version;
         return this;
     }
 

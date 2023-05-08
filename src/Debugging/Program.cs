@@ -22,10 +22,12 @@ using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis.Standard;
+using Lucene.Net.Analysis.Util;
 using Lucene.Net.Documents;
+using Lucene.Net.Index;
+using Lucene.Net.Util;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Version = Lucene.Net.Util.Version;
 
 //TraceSource trace; 
 
@@ -37,7 +39,7 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(Version.LUCENE_30, new SortedSet<string>())));
+IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(LuceneVersion.LUCENE_48, CharArraySet.EMPTY_SET)));
 index.Configuration.SetTypeResolver("contentType");
 index.Configuration.SetRawField("$raw");
 index.Configuration.SetScoreField("$score");
@@ -77,9 +79,6 @@ while (true)
             index.Commit();
             break;
 
-        case 'O':
-            index.Optimize();
-            break;
 
         default:
             Reporter.Report();
@@ -102,7 +101,7 @@ await run;
 public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
 {
 
-    public IFieldable Serialize(string rawfield, JObject value)
+    public IIndexableField Serialize(string rawfield, JObject value)
     {
         using MemoryStream stream = new();
         using (GZipStream zip = new(stream, CompressionLevel.Optimal))
@@ -112,12 +111,12 @@ public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
             jsonWriter.Close();
         }
         byte[] buffer = stream.GetBuffer();
-        return new Field(rawfield, buffer, Field.Store.YES);
+        return new StoredField(rawfield, buffer);
     }
 
     public JObject Deserialize(string rawfield, Document document)
     {
-        byte[] buffer = document.GetBinaryValue(rawfield);
+        byte[] buffer = document.GetBinaryValue(rawfield).Bytes;
         using MemoryStream stream = new(buffer);
         using GZipStream zip = new(stream, CompressionMode.Decompress);
         JsonTextReader reader = new(new StreamReader(zip));

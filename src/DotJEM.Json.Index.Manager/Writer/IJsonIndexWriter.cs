@@ -15,17 +15,12 @@ public interface IJsonIndexWriter
     void Create(JObject entity);
     void Delete(JObject entity);
     void Commit();
-    void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes);
-    void Optimize();
-    void Optimize(int maxNumSegments);
-    void ExpungeDeletes();
+    void Flush(bool triggerMerge, bool applyAllDeletes);
     void MaybeMerge();
 }
 
 public class JsonIndexWriter : IJsonIndexWriter
 {
-    private readonly double ramBufferSize;
-
     private readonly IStorageIndex index;
     private readonly IDocumentFactory mapper;
     private readonly IIdentityResolver resolver;
@@ -39,7 +34,6 @@ public class JsonIndexWriter : IJsonIndexWriter
         {
             if (writer == index.Storage.Writer) return writer;
             writer = index.Storage.Writer;
-            writer.SetRAMBufferSizeMB(ramBufferSize);
             return writer;
         }
     }
@@ -47,7 +41,6 @@ public class JsonIndexWriter : IJsonIndexWriter
     public JsonIndexWriter(IStorageIndex index, IWebTaskScheduler scheduler, string commitInterval = "10s", int batchSize = 20000, double ramBufferSize = 1024)
     {
         this.index = index;
-        this.ramBufferSize = ramBufferSize;
         this.mapper = index.Services.DocumentFactory;
         this.resolver = index.Configuration.IdentityResolver;
         this.committer = new IndexCommitter(this, AdvParsers.AdvParser.ParseTimeSpan(commitInterval), batchSize);
@@ -79,10 +72,7 @@ public class JsonIndexWriter : IJsonIndexWriter
 
 
     public void Commit() => Writer.Commit();
-    public void Flush(bool triggerMerge, bool flushDocStores, bool flushDeletes) => Writer.Flush(triggerMerge, flushDocStores, flushDeletes);
-    public void Optimize() => Writer.Optimize();
-    public void Optimize(int maxNumSegments) => Writer.Optimize(maxNumSegments);
-    public void ExpungeDeletes() => Writer.ExpungeDeletes();
+    public void Flush(bool triggerMerge, bool applyAllDeletes) => Writer.Flush(triggerMerge, applyAllDeletes);
     public void MaybeMerge() => Writer.MaybeMerge();
 
     private class IndexCommitter
@@ -107,7 +97,6 @@ public class JsonIndexWriter : IJsonIndexWriter
             if(value % batchSize == 0 || time.Elapsed > commitInterval)
                 Commit();
         }
-
 
         private void Commit()
         {

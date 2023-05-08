@@ -10,7 +10,7 @@
   <ItemGroup>
 	  <PackageReference Include="DotJEM.Json.Storage" Version="0.4.42" />
 	  <PackageReference Include="DotJEM.ObservableExtensions" Version="0.0.13" />
-	  <PackageReference Include="DotJEM.Web.Scheduler" Version="0.0.4" />
+	  <PackageReference Include="DotJEM.Web.Scheduler" Version="0.0.6" />
   </ItemGroup>
 
   <ItemGroup>
