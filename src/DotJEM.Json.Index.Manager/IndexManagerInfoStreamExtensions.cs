@@ -70,7 +70,7 @@ public record struct StorageAreaIngestState(
             case JsonSourceEventType.Updated:
             case JsonSourceEventType.Stopped:
                 return $" -> [{LastEvent}:{LastUpdateDuration.TotalMilliseconds}ms] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount + UpdatedCount:N0} objects indexed."
-                       + $" Update cycle (avg): {UpdateCycles} ({(TotalUpdateDuration.TotalMilliseconds/UpdateCycles):##.000}ms)";
+                       + $" Update cycle (avg): {UpdateCycles} ({(TotalUpdateDuration.TotalMilliseconds/Math.Max(1,UpdateCycles)):##.000}ms)";
         }
 
         return "???";

@@ -6,16 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Ingest\**" />
+    <EmbeddedResource Remove="Ingest\**" />
+    <None Remove="Ingest\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DotJEM.Json.Index" Version="2.0.257-Alfa.L48-01" />
     <PackageReference Include="DotJEM.Web.Scheduler" Version="0.0.6" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.Reactive" Version="5.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Cleanup\" />
-    <Folder Include="Ingest\" />
   </ItemGroup>
 
 </Project>

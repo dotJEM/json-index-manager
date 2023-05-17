@@ -159,8 +159,8 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
     private class StorageAreaIngestStateTracker
     {
-        private readonly Stopwatch initTimer = new ();
-        private readonly Stopwatch updateTimer =  new ();
+        private Stopwatch initTimer = new ();
+        private Stopwatch updateTimer =  new ();
         private bool initializing = true;
 
         public StorageAreaIngestState State { get; private set; }
@@ -175,7 +175,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
             switch (state)
             {
                 case JsonSourceEventType.Initializing:
-                    initTimer.Restart();
+                    initTimer = Stopwatch.StartNew();
                     initializing = true;
                     break;
 
@@ -187,7 +187,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
                 case JsonSourceEventType.Initialized:
                     initTimer.Stop();
                     initializing = false;
-                    State = State with { LastEvent = state, Duration = initTimer.Elapsed};
+                    State = State with { LastEvent = state, Duration = initTimer.Elapsed };
                     break;
                 
                 case JsonSourceEventType.Updated:
@@ -210,11 +210,11 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
         {
             if (initializing)
             {
-                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation };
+                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation, Duration = initTimer.Elapsed };
             }
             else
             {
-                State = State with { UpdatedCount = State.UpdatedCount+1, Generation = generation };
+                State = State with { UpdatedCount = State.UpdatedCount+1, Generation = generation, LastUpdateDuration =updateTimer.Elapsed };
 
             }
             return this;
