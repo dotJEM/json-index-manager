@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 7.x.x
+        
+    - name: Calculate Version Parameters
+      id: version
+      run: |
+        build=${{github.run_number}}
+        template=`cat ./VERSION`
+        shortsha=$(git rev-parse --short ${{ github.sha }})
+        echo "template=$template" >> $GITHUB_OUTPUT 
+        echo "template=$template"
+        echo "shortsha=$shortsha" >> $GITHUB_OUTPUT
+        echo "shortsha=$shortsha"
+        echo "semver=${template//build/$build}+sha.$shortsha" >> $GITHUB_OUTPUT
+        echo "semver=${template//build/$build}+sha.$shortsha"
+        echo "msver=${template//build/$build}.0" >> $GITHUB_OUTPUT
+        echo "msver=${template//build/$build}.0"
+        
+    - name: Restore dependencies
+      working-directory: ./src
+      run: dotnet restore
+      
+    - name: Build
+      working-directory: ./src
+      run: > 
+        dotnet build --configuration Release --no-restore 
+        /p:Version=${{steps.version.outputs.semver}}
+        /p:PackageVersion=${{steps.version.outputs.semver}}
+        /p:AssemblyVersion=${{steps.version.outputs.msver}}
+        /p:FileVersion=${{steps.version.outputs.msver}}
+
+    - name: Test
+      working-directory: ./src
+      run: dotnet test --configuration Release --no-build --verbosity normal
+      
+    - name: Package
+      working-directory: ./src
+      run: > 
+        dotnet pack --configuration Release --no-restore 
+        /p:Version=${{steps.version.outputs.semver}}
+        /p:PackageVersion=${{steps.version.outputs.semver}}
+        /p:AssemblyVersion=${{steps.version.outputs.msver}}
+        /p:FileVersion=${{steps.version.outputs.msver}}
+      
+    - name: Publish
+      if: github.event_name == 'push'
+      working-directory: ./src
+      run: dotnet nuget push **/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate 

@@ -1,28 +1,22 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using DotJEM.Json.Index;
 using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Index.Manager.Tracking;
-using DotJEM.Json.Index.Manager.V1Adapter;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
-using Foundation.ObjectHydrator.Generators;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
 using Lucene.Net.Documents;
@@ -30,8 +24,8 @@ using Lucene.Net.Index;
 using Lucene.Net.Util;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Stress.Adapter;
 using Stress.Data;
-using static System.Net.WebRequestMethods;
 
 //TraceSource trace; 
 

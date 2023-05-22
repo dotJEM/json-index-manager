@@ -1,22 +1,50 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net481</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+		
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>DotJEM</Authors>
+    <Copyright>Copyright © DotJEM 2023</Copyright>
+    <Description>Builder for JSON Data Contract Resolvers</Description>
+    <IncludeSymbols>False</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+ 
+    <Version></Version>
+    <PackageVersion></PackageVersion>
+    <InformationalVersion></InformationalVersion>
+    <PackageVersion></PackageVersion>
+    <AssemblyVersion></AssemblyVersion>
+    <FileVersion></FileVersion>
+	
+	<PackageIcon>avatar.png</PackageIcon>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	  
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <Compile Remove="Ingest\**" />
-    <EmbeddedResource Remove="Ingest\**" />
-    <None Remove="Ingest\**" />
+    <None Include="..\..\avatar.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotJEM.Json.Index" Version="2.0.257-Alfa.L48-01" />
-    <PackageReference Include="DotJEM.Web.Scheduler" Version="0.0.6" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.0" />
-    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
-    <PackageReference Include="System.Reactive" Version="5.0.0" />
+	<PackageReference Include="DotJEM.Json.Index" Version="2.0.257-Alfa.L48-01" />
+	<PackageReference Include="DotJEM.Web.Scheduler" Version="0.0.6" />
+	<PackageReference Include="System.Diagnostics.DiagnosticSource" Version="7.0.0" />
+	<PackageReference Include="System.IO.Compression" Version="4.3.0" />
+	<PackageReference Include="System.Reactive" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

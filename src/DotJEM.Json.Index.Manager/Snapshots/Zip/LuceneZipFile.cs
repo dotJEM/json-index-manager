@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.Remoting;
 using System.Threading;
 using System.Threading.Tasks;
 using DotJEM.Json.Index.Storage.Snapshot;
@@ -82,7 +81,6 @@ public class LuceneZipFile : ILuceneFile
         }
 
         public override object InitializeLifetimeService() => inner.InitializeLifetimeService();
-        public override ObjRef CreateObjRef(Type requestedType) => inner.CreateObjRef(requestedType);
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) => inner.CopyToAsync(destination, bufferSize, cancellationToken);
         public override void Flush() => inner.Flush();
         public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
