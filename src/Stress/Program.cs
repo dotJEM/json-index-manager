@@ -50,7 +50,7 @@ StressDataGenerator generator = new StressDataGenerator(
     storage.Area("Trashcan")
 );
 Task genTask = generator.StartAsync();
-await Task.Delay(5000);
+await Task.Delay(2000);
 
 
 IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(LuceneVersion.LUCENE_48,CharArraySet.EMPTY_SET)));
@@ -162,7 +162,15 @@ public static class Reporter
             return;
 
         lastReport = DateTime.Now;
-        Console.Clear();
+        Console.SetCursorPosition(0,0);
+        string emptyLine = new string(' ', 128);
+        for(int i = 0; i < 16; i++)
+            Console.WriteLine(emptyLine);
+        Console.SetCursorPosition(0, 0);
+
+
+
+
         Console.WriteLine(lastEvent.Message);
         Console.WriteLine(lastState);
     }
