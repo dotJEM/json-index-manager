@@ -168,9 +168,6 @@ public static class Reporter
             Console.WriteLine(emptyLine);
         Console.SetCursorPosition(0, 0);
 
-
-
-
         Console.WriteLine(lastEvent.Message);
         Console.WriteLine(lastState);
     }

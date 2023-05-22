@@ -38,7 +38,7 @@ public class JsonIndexWriter : IJsonIndexWriter
         }
     }
 
-    public JsonIndexWriter(IStorageIndex index, IWebTaskScheduler scheduler, string commitInterval = "10s", int batchSize = 20000, double ramBufferSize = 1024)
+    public JsonIndexWriter(IStorageIndex index, IWebTaskScheduler scheduler, string commitInterval = "10s", int batchSize = 20000)
     {
         this.index = index;
         this.mapper = index.Services.DocumentFactory;
