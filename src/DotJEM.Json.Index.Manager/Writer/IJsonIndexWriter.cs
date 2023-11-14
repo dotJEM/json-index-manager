@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
-using DotJEM.Json.Index.Configuration.IdentityStrategies;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Documents;
+using DotJEM.Json.Index2.Documents.Info;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -21,9 +23,9 @@ public interface IJsonIndexWriter
 
 public class JsonIndexWriter : IJsonIndexWriter
 {
-    private readonly IStorageIndex index;
-    private readonly IDocumentFactory mapper;
-    private readonly IIdentityResolver resolver;
+    private readonly IJsonIndex index;
+    private readonly ILuceneDocumentFactory mapper;
+    private readonly IFieldInformationManager resolver;
     private readonly IndexCommitter committer;
 
     private IndexWriter writer;
@@ -32,17 +34,17 @@ public class JsonIndexWriter : IJsonIndexWriter
     {
         get
         {
-            if (writer == index.Storage.Writer) return writer;
-            writer = index.Storage.Writer;
+            if (writer == index.WriterManager.Writer) return writer;
+            writer = index.WriterManager.Writer;
             return writer;
         }
     }
 
-    public JsonIndexWriter(IStorageIndex index, IWebTaskScheduler scheduler, string commitInterval = "10s", int batchSize = 20000, double ramBufferSize = 1024)
+    public JsonIndexWriter(IJsonIndex index, IWebTaskScheduler scheduler, string commitInterval = "10s", int batchSize = 20000, double ramBufferSize = 1024)
     {
         this.index = index;
-        this.mapper = index.Services.DocumentFactory;
-        this.resolver = index.Configuration.IdentityResolver;
+        this.mapper = index.Configuration.DocumentFactory;
+        this.resolver = index.Configuration.FieldInformationManager;
         this.committer = new IndexCommitter(this, AdvParsers.AdvParser.ParseTimeSpan(commitInterval), batchSize);
 
         scheduler.Schedule(nameof(IndexCommitter), _ => committer.Increment(), commitInterval);
@@ -50,22 +52,22 @@ public class JsonIndexWriter : IJsonIndexWriter
 
     public void Write(JObject entity)
     {
-        Term term = resolver.CreateTerm(entity);
-        Document doc = mapper.Create(entity);
-        Writer.UpdateDocument(term, doc);
+        Term term = resolver.Resolver.Identity(entity);
+        LuceneDocumentEntry doc = mapper.Create(entity);
+        Writer.UpdateDocument(term, doc.Document);
         committer.Increment();
     }
 
     public void Create(JObject entity)
     {
-        Document doc = mapper.Create(entity);
-        Writer.AddDocument(doc);
+        LuceneDocumentEntry doc = mapper.Create(entity);
+        Writer.AddDocument(doc.Document);
         committer.Increment();
     }
 
     public void Delete(JObject entity)
     {
-        Term term = resolver.CreateTerm(entity);
+        Term term = resolver.Resolver.Identity(entity);
         Writer.DeleteDocuments(term);
         committer.Increment();
     }

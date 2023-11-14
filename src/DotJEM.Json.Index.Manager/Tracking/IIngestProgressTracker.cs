@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
-using DotJEM.Json.Index.Storage.Snapshot;
 using DotJEM.ObservableExtensions;
 using DotJEM.ObservableExtensions.InfoStreams;
 
@@ -95,10 +94,10 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
         switch (sne.EventType)
         {
             case FileEventType.OPEN:
-                restoreTrackers.TryAdd(sne.SegmentsFileName, new IndexFileRestoreStateTracker(sne.SegmentsFileName));
-                restoreTrackers.TryAdd(sne.SegmentsGenFileName, new IndexFileRestoreStateTracker(sne.SegmentsGenFileName));
-                foreach (string file in sne.SnapshotFiles)
-                    restoreTrackers.TryAdd(file, new IndexFileRestoreStateTracker(file));
+                //restoreTrackers.TryAdd(sne.SegmentsFileName, new IndexFileRestoreStateTracker(sne.SegmentsFileName));
+                //restoreTrackers.TryAdd(sne.SegmentsGenFileName, new IndexFileRestoreStateTracker(sne.SegmentsGenFileName));
+                //foreach (string file in sne.SnapshotFiles)
+                //    restoreTrackers.TryAdd(file, new IndexFileRestoreStateTracker(file));
                 break;
             case FileEventType.CLOSE:
                 break;

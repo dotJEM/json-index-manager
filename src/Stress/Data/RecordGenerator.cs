@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Windows.Input;
 using Foundation.ObjectHydrator;
 using Foundation.ObjectHydrator.Generators;
 using Foundation.ObjectHydrator.Interfaces;

@@ -1,4 +1,4 @@
-﻿using DotJEM.Json.Index.Storage.Snapshot;
+﻿using DotJEM.Json.Index2.Snapshots;
 using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json.Linq;
 

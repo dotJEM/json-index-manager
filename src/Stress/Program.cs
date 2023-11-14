@@ -1,41 +1,30 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-using DotJEM.Json.Index;
-using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.V1Adapter;
 using DotJEM.Json.Index.Manager.Writer;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Documents.Fields;
+using DotJEM.Json.Index2.Storage;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
-using Foundation.ObjectHydrator.Generators;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
-using Lucene.Net.Documents;
-using Lucene.Net.Index;
-using Lucene.Net.Util;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Stress.Data;
-using static System.Net.WebRequestMethods;
 
 //TraceSource trace; 
 
-IStorageContext storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=stress;Integrated Security=True");
+IStorageContext storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=SSN3DB;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
 storage.Configure.MapField(JsonField.ContentType, "contentType");
 storage.Configure.MapField(JsonField.Version, "$version");
@@ -43,28 +32,35 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-StressDataGenerator generator = new StressDataGenerator(
-    storage.Area(),
-    storage.Area("Settings"),
-    storage.Area("Queue"),
-    storage.Area("Recipes"),
-    storage.Area("Animals"),
-    storage.Area("Games"),
-    storage.Area("Players"),
-    storage.Area("Planets"),
-    storage.Area("Universe"),
-    storage.Area("Trashcan")
-);
-Task genTask = generator.StartAsync();
-await Task.Delay(5000);
+//StressDataGenerator generator = new StressDataGenerator(
+//    storage.Area(),
+//    storage.Area("Settings"),
+//    storage.Area("Queue"),
+//    storage.Area("Recipes"),
+//    storage.Area("Animals"),
+//    storage.Area("Games"),
+//    storage.Area("Players"),
+//    storage.Area("Planets"),
+//    storage.Area("Universe"),
+//    storage.Area("Trashcan")
+//);
+//Task genTask = generator.StartAsync();
+//await Task.Delay(5000);
 
+Directory.CreateDirectory(".\\app_data\\index");
 
-IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(LuceneVersion.LUCENE_48,CharArraySet.EMPTY_SET)));
-index.Configuration.SetTypeResolver("contentType");
-index.Configuration.SetRawField("$raw");
-index.Configuration.SetScoreField("$score");
-index.Configuration.SetIdentity("id");
-index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
+IJsonIndex index = new JsonIndexBuilder("main")
+    .UsingStorage(new SimpleFsJsonIndexStorage(".\\app_data\\index"))
+    .WithAnalyzer(cfg=> new StandardAnalyzer(cfg.Version,CharArraySet.EMPTY_SET))
+    .WithFieldResolver(new FieldResolver("id", "contentType"))
+    .Build();
+
+//IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index",);
+//index.Configuration.SetTypeResolver("contentType");
+//index.Configuration.SetRawField("$raw");
+//index.Configuration.SetScoreField("$score");
+//index.Configuration.SetIdentity("id");
+//index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
@@ -79,8 +75,8 @@ IJsonIndexManager jsonIndexManager = new JsonIndexManager(
 
 Task run = Task.WhenAll(
     jsonIndexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
-    jsonIndexManager.RunAsync(),
-    genTask
+    jsonIndexManager.RunAsync()
+    //genTask
 );
 
 
@@ -90,7 +86,7 @@ while (true)
     {
         case 'E':
         case 'Q':
-            generator.Stop();
+            //generator.Stop();
             goto EXIT;
 
         case 'S':
@@ -111,34 +107,6 @@ while (true)
 EXIT:
 await run;
 
-
-public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
-{
-
-    public IIndexableField Serialize(string rawfield, JObject value)
-    {
-        using MemoryStream stream = new();
-        using (GZipStream zip = new(stream, CompressionLevel.Optimal))
-        {
-            JsonTextWriter jsonWriter = new(new StreamWriter(zip));
-            value.WriteTo(jsonWriter);
-            jsonWriter.Close();
-        }
-        byte[] buffer = stream.GetBuffer();
-        return new StoredField(rawfield, buffer);
-    }
-
-    public JObject Deserialize(string rawfield, Document document)
-    {
-        byte[] buffer = document.GetBinaryValue(rawfield).Bytes;
-        using MemoryStream stream = new(buffer);
-        using GZipStream zip = new(stream, CompressionMode.Decompress);
-        JsonTextReader reader = new(new StreamReader(zip));
-        JObject entity = (JObject)JToken.ReadFrom(reader);
-        reader.Close();
-        return entity;
-    }
-}
 
 public static class Reporter
 {
@@ -161,14 +129,18 @@ public static class Reporter
         Report();
     }
 
-
+    private static string CleanLine = new string(' ', Console.BufferWidth);
     public static void Report()
     {
         if(DateTime.Now - lastReport < TimeSpan.FromSeconds(2))
             return;
 
         lastReport = DateTime.Now;
-        Console.Clear();
+        Console.SetCursorPosition(0,0);
+        for (int i = 0; i < 20; i++)
+            Console.WriteLine(CleanLine);                                                                            
+        Console.SetCursorPosition(0,0);
+
         Console.WriteLine(lastEvent.Message);
         Console.WriteLine(lastState);
     }

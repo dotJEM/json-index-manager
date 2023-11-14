@@ -1,4 +1,4 @@
-﻿using DotJEM.Json.Index.Storage.Snapshot;
+﻿using DotJEM.Json.Index2.Snapshots;
 using DotJEM.ObservableExtensions.InfoStreams;
 using Newtonsoft.Json.Linq;
 
@@ -8,6 +8,6 @@ public interface ISnapshotStrategy
 {
     IInfoStream InfoStream { get; }
     ISnapshotTarget CreateTarget(JObject metaData);
-    ISnapshotSourceWithMetadata CreateSource(int offset);
+    ISnapshotSource CreateSource(int offset);
     void CleanOldSnapshots();
 }

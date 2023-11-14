@@ -9,14 +9,15 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using DotJEM.Json.Index;
-using DotJEM.Json.Index.Configuration;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.V1Adapter;
 using DotJEM.Json.Index.Manager.Writer;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Documents.Fields;
+using DotJEM.Json.Index2.Storage;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
@@ -39,12 +40,18 @@ storage.Configure.MapField(JsonField.Created, "$created");
 storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
-IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(LuceneVersion.LUCENE_48, CharArraySet.EMPTY_SET)));
-index.Configuration.SetTypeResolver("contentType");
-index.Configuration.SetRawField("$raw");
-index.Configuration.SetScoreField("$score");
-index.Configuration.SetIdentity("id");
-index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
+IJsonIndex index = new JsonIndexBuilder("foo")
+    .UsingStorage(new SimpleFsJsonIndexStorage(".\\app_data\\index"))
+    .WithAnalyzer(configuration => new StandardAnalyzer(configuration.Version, CharArraySet.EMPTY_SET))
+    .WithFieldResolver(new FieldResolver("id", "contentType"))
+    .Build();
+
+//IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index", new StandardAnalyzer(LuceneVersion.LUCENE_48, CharArraySet.EMPTY_SET)));
+//index.Configuration.SetTypeResolver("contentType");
+//index.Configuration.SetRawField("$raw");
+//index.Configuration.SetScoreField("$score");
+//index.Configuration.SetIdentity("id");
+//index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
 
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
@@ -97,34 +104,6 @@ await run;
 //storageManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
 //manager.InfoStream.ForEachAsync(Reporter.CaptureInfo)
 
-
-public class ZipJsonDocumentSerializer : IJsonDocumentSerializer
-{
-
-    public IIndexableField Serialize(string rawfield, JObject value)
-    {
-        using MemoryStream stream = new();
-        using (GZipStream zip = new(stream, CompressionLevel.Optimal))
-        {
-            JsonTextWriter jsonWriter = new(new StreamWriter(zip));
-            value.WriteTo(jsonWriter);
-            jsonWriter.Close();
-        }
-        byte[] buffer = stream.GetBuffer();
-        return new StoredField(rawfield, buffer);
-    }
-
-    public JObject Deserialize(string rawfield, Document document)
-    {
-        byte[] buffer = document.GetBinaryValue(rawfield).Bytes;
-        using MemoryStream stream = new(buffer);
-        using GZipStream zip = new(stream, CompressionMode.Decompress);
-        JsonTextReader reader = new(new StreamReader(zip));
-        JObject entity = (JObject)JToken.ReadFrom(reader);
-        reader.Close();
-        return entity;
-    }
-}
 
 public static class Reporter
 {

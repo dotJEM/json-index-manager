@@ -2,7 +2,8 @@
 using System.Threading.Tasks;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Json.Index.Manager.Tracking;
-using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.Json.Index2;
+using DotJEM.Json.Index2.Snapshots;
 using DotJEM.Web.Scheduler;
 using Newtonsoft.Json.Linq;
 
@@ -36,7 +37,7 @@ public class NullIndexSnapshotManager : IJsonIndexSnapshotManager
 
 public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
 {
-    private readonly IStorageIndex index;
+    private readonly IJsonIndex index;
     private readonly ISnapshotStrategy strategy;
     private readonly IWebTaskScheduler scheduler;
     private readonly IInfoStream<JsonIndexSnapshotManager> infoStream = new InfoStream<JsonIndexSnapshotManager>();
@@ -45,7 +46,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
 
     public IInfoStream InfoStream => infoStream;
 
-    public JsonIndexSnapshotManager(IStorageIndex index, ISnapshotStrategy snapshotStrategy, IWebTaskScheduler scheduler, string schedule)
+    public JsonIndexSnapshotManager(IJsonIndex index, ISnapshotStrategy snapshotStrategy, IWebTaskScheduler scheduler, string schedule)
     {
         this.index = index;
         this.strategy = snapshotStrategy;
@@ -83,7 +84,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
             ISnapshotTarget target = strategy.CreateTarget(new JObject { ["storageGenerations"] = json });
             
             index.Commit();
-            index.Storage.Snapshot(target);
+            index.Snapshot(target);
             infoStream.WriteInfo($"Created snapshot");
             return true;
         }
@@ -105,27 +106,27 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
         {
             try
             {
-                ISnapshotSourceWithMetadata source = strategy.CreateSource(offset++);
+                var source = strategy.CreateSource(offset++);
                 if (source == null)
                 {
                     infoStream.WriteInfo($"No snapshots found to restore");
                     return new RestoreSnapshotResult(false, default);
                 }
 
-                if (!source.Verify())
-                {
-                    infoStream.WriteWarning($"Deleting corrupt snapshot {source.Name}.");
-                    source.Delete();
-                    continue;
-                }
+                //if (!source.Verify())
+                //{
+                //    infoStream.WriteWarning($"Deleting corrupt snapshot {source.Name}.");
+                //    source.Delete();
+                //    continue;
+                //}
 
-                infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                bool restored = index.Storage.Restore(source);
-                if (source.Metadata["storageGenerations"] is not JObject generations) continue;
-                if (generations["Areas"] is not JArray areas) continue;
+                //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
+                ISnapshot restored = index.Restore(source);
+                //if (source.Metadata["storageGenerations"] is not JObject generations) continue;
+                //if (generations["Areas"] is not JArray areas) continue;
 
-                return new RestoreSnapshotResult(restored, new StorageIngestState(
-                    areas.ToObject<StorageAreaIngestState[]>()
+                return new RestoreSnapshotResult(true, new StorageIngestState(
+                   // areas.ToObject<StorageAreaIngestState[]>()
                 ));
 
             }
