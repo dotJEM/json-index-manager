@@ -1,10 +1,13 @@
-﻿using DotJEM.Json.Storage.Adapter;
+﻿using System;
+using System.Threading.Tasks;
+using DotJEM.Json.Index.Manager;
+using DotJEM.Json.Storage.Adapter;
 using DotJEM.Json.Storage.Adapter.Materialize.ChanceLog.ChangeObjects;
 using DotJEM.Json.Storage.Adapter.Observable;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 
-namespace DotJEM.Json.Index.Manager.V1Adapter;
+namespace Stress.Adapter;
 
 public interface IJsonStorageAreaObserver
 {

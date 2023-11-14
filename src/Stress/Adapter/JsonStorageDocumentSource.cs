@@ -1,8 +1,13 @@
-﻿using DotJEM.Json.Storage;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DotJEM.Json.Index.Manager;
+using DotJEM.Json.Storage;
 using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 
-namespace DotJEM.Json.Index.Manager.V1Adapter;
+namespace Stress.Adapter;
 
 public class JsonStorageDocumentSource : IJsonDocumentSource
 {
