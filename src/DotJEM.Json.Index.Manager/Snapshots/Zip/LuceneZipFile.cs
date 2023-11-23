@@ -3,12 +3,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
-using DotJEM.Json.Index.Storage.Snapshot;
+using DotJEM.Json.Index2.Snapshots;
 using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 
-public class LuceneZipFile : ILuceneFile
+public class LuceneZipFile : ISnapshotFile
 {
     private readonly ZipArchive archive;
     private readonly IInfoStream<LuceneZipFile> infoStream = new InfoStream<LuceneZipFile>();

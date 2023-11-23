@@ -21,3 +21,4 @@ public class ZipSnapshotEvent : InfoStreamEvent
         EventType = eventType;
     }
 }
+

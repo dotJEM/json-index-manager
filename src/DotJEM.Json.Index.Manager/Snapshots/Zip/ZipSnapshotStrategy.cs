@@ -22,17 +22,10 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
         this.maxSnapshots = maxSnapshots;
     }
 
-    public ISnapshotTarget CreateTarget(JObject metaData)
-    {
-        return new ZipSnapshotTarget(path);
-    }
 
-    public ISnapshotSource CreateSource(int offset)
+    public ISnapshotStorage OpenStorage()
     {
-        string[] files = GetSnapshots();
-        var source = files.Length > offset ? new ZipSnapshotSource(files[offset]) : null;
-        //source?.InfoStream.Subscribe(InfoStream);
-        return source;
+        return new ZipSnapshotStorage(path);
     }
 
     public void CleanOldSnapshots()
@@ -62,3 +55,4 @@ public class ZipSnapshotStrategy : ISnapshotStrategy
     }
 
 }
+

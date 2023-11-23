@@ -6,14 +6,14 @@ namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 
 public class ZipFileEvent : InfoStreamEvent
 {
-    private readonly ILuceneFile file;
+    private readonly ISnapshotFile file;
 
     public FileEventType EventType { get; }
     //public LuceneZipFile File { get; }
 
     public string FileName => file.Name;
 
-    public ZipFileEvent(Type source, InfoLevel level, ILuceneFile file, FileEventType eventType, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
+    public ZipFileEvent(Type source, InfoLevel level, ISnapshotFile file, FileEventType eventType, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
         : base(source, level, message, callerMemberName, callerFilePath, callerLineNumber)
     {
         this.file = file;

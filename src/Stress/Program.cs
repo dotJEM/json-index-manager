@@ -9,10 +9,10 @@ using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
 using DotJEM.Json.Index.Manager.Tracking;
-using DotJEM.Json.Index.Manager.V1Adapter;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Documents.Fields;
+using DotJEM.Json.Index2.Snapshots;
 using DotJEM.Json.Index2.Storage;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
@@ -20,6 +20,7 @@ using DotJEM.ObservableExtensions.InfoStreams;
 using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
+using Stress.Adapter;
 using Stress.Data;
 
 //TraceSource trace; 
@@ -50,9 +51,10 @@ storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 Directory.CreateDirectory(".\\app_data\\index");
 
 IJsonIndex index = new JsonIndexBuilder("main")
-    .UsingStorage(new SimpleFsJsonIndexStorage(".\\app_data\\index"))
+    .UsingSimpleFileStorage(".\\app_data\\index")
     .WithAnalyzer(cfg=> new StandardAnalyzer(cfg.Version,CharArraySet.EMPTY_SET))
     .WithFieldResolver(new FieldResolver("id", "contentType"))
+    .WithSnapshoting()
     .Build();
 
 //IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index",);
