@@ -119,29 +119,29 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
                 {
                     try
                     {
-                        ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
-
+                        await index.RestoreSnapshotAsync(snapshot);
+                        return new RestoreSnapshotResult(true, ...);
                     }
                     catch (Exception e)
                     {
-                        snapshot.De
+                        snapshot.Delete();
                     }
                 }
 
                 //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                ISnapshot snapshot = source.LoadSnapshots().FirstOrDefault();
-                if(snapshot is null)
+                //ISnapshot snapshot = source.LoadSnapshots().FirstOrDefault();
+               // if(snapshot is null)
                     return new RestoreSnapshotResult(false, new StorageIngestState());
                 
                 
 
-                ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
+                //ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
                 //if (source.Metadata["storageGenerations"] is not JObject generations) continue;
                 //if (generations["Areas"] is not JArray areas) continue;
 
-                return new RestoreSnapshotResult(true, new StorageIngestState(
+//                return new RestoreSnapshotResult(true, new StorageIngestState(
                    // areas.ToObject<StorageAreaIngestState[]>()
-                ));
+ //               ));
 
             }
             catch (Exception ex)
