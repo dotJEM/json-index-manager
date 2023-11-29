@@ -75,7 +75,9 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
             ISnapshotStorage target = strategy.OpenStorage();
             
             index.Commit();
-            await index.TakeSnapshotAsync(target);
+            ISnapshot snapshot = await index.TakeSnapshotAsync(target, true);
+            ISnapshotWriter writer = snapshot.OpenWriter();
+
             infoStream.WriteInfo($"Created snapshot");
             return true;
         }
@@ -114,9 +116,10 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
                 //}
 
                 //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                ISnapshot snapshot = source.Snapshots.FirstOrDefault();
+                ISnapshot snapshot = source.loadSnapshots().FirstOrDefault();
                 if(snapshot is null)
                     return new RestoreSnapshotResult(false, new StorageIngestState());
+                
                 
 
                 ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);

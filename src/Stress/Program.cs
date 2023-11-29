@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
+using DotJEM.Json.Index.Manager.Snapshots.Zip.Meta;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Index2;

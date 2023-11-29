@@ -7,7 +7,7 @@ using DotJEM.Json.Index2.Snapshots;
 using DotJEM.Json.Index2.Snapshots.Zip;
 using DotJEM.ObservableExtensions.InfoStreams;
 
-namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
+namespace DotJEM.Json.Index.Manager.Snapshots.Zip.Meta;
 
 public static class ZipSnapshotInfoStreamExtensions
 {
@@ -28,7 +28,7 @@ public static class ZipSnapshotInfoStreamExtensions
 public record struct SnapshotRestoreState(SnapshotFileRestoreState[] Files) : ITrackerState
 {
     public DateTime StartTime { get; set; } = DateTime.Now;
-    
+
     public override string ToString()
     {
         return Files.Aggregate(new StringBuilder()

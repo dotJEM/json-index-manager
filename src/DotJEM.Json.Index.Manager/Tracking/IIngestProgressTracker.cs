@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using DotJEM.Json.Index.Manager.Snapshots.Zip;
+using DotJEM.Json.Index.Manager.Snapshots.Zip.Meta;
 using DotJEM.ObservableExtensions;
 using DotJEM.ObservableExtensions.InfoStreams;
 
