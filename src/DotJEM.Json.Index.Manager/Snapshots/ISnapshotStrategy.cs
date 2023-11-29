@@ -7,6 +7,6 @@ namespace DotJEM.Json.Index.Manager.Snapshots;
 public interface ISnapshotStrategy
 {
     IInfoStream InfoStream { get; }
-    ISnapshotStorage OpenStorage();
+    ISnapshotStorage Storage { get; }
     void CleanOldSnapshots();
 }

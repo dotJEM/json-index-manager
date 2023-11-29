@@ -72,10 +72,10 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
         try
         {
             JObject json = JObject.FromObject(state);
-            ISnapshotStorage target = strategy.OpenStorage();
+            ISnapshotStorage target = strategy.Storage;
             
             index.Commit();
-            ISnapshot snapshot = await index.TakeSnapshotAsync(target, true);
+            ISnapshot snapshot = await index.TakeSnapshotAsync(target);
             ISnapshotWriter writer = snapshot.OpenWriter();
 
             infoStream.WriteInfo($"Created snapshot");
@@ -99,7 +99,7 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
         {
             try
             {
-                ISnapshotStorage source = strategy.OpenStorage();
+                ISnapshotStorage source = strategy.Storage;
                 if (source == null)
                 {
                     infoStream.WriteInfo($"No snapshots found to restore");
@@ -115,8 +115,21 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
                 //    continue;
                 //}
 
+                foreach (ISnapshot snapshot in source.LoadSnapshots())
+                {
+                    try
+                    {
+                        ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
+
+                    }
+                    catch (Exception e)
+                    {
+                        snapshot.De
+                    }
+                }
+
                 //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                ISnapshot snapshot = source.loadSnapshots().FirstOrDefault();
+                ISnapshot snapshot = source.LoadSnapshots().FirstOrDefault();
                 if(snapshot is null)
                     return new RestoreSnapshotResult(false, new StorageIngestState());
                 

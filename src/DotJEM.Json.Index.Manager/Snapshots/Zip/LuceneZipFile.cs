@@ -9,15 +9,15 @@ using DotJEM.ObservableExtensions.InfoStreams;
 
 namespace DotJEM.Json.Index.Manager.Snapshots.Zip;
 
-public class LuceneZipFile : ISnapshotFile
+public class MetaSnapshotFile : ISnapshotFile
 {
     private readonly ZipArchive archive;
-    private readonly IInfoStream<LuceneZipFile> infoStream = new InfoStream<LuceneZipFile>();
+    private readonly IInfoStream<MetaSnapshotFile> infoStream = new InfoStream<MetaSnapshotFile>();
     
     public IInfoStream InfoStream => infoStream;
     public string Name { get; }
 
-    public LuceneZipFile(string fileName, ZipArchive archive)
+    public MetaSnapshotFile(string fileName, ZipArchive archive)
     {
         this.Name = fileName;
         this.archive = archive;
@@ -34,7 +34,7 @@ public class LuceneZipFile : ISnapshotFile
     private class ZipStreamWrapper : Stream
     {
         private readonly Stream inner;
-        private readonly LuceneZipFile file;
+        private readonly MetaSnapshotFile file;
         private readonly IInfoStream<ZipStreamWrapper> info = new InfoStream<ZipStreamWrapper>();
 
         public IInfoStream InfoStream => info;
@@ -62,7 +62,7 @@ public class LuceneZipFile : ISnapshotFile
             set => inner.WriteTimeout = value;
         }
 
-        public ZipStreamWrapper(Stream inner, LuceneZipFile file)
+        public ZipStreamWrapper(Stream inner, MetaSnapshotFile file)
         {
             this.inner = inner;
             this.file = file;
