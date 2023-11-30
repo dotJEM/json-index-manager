@@ -106,7 +106,7 @@ public class JsonStorageAreaObserver : IJsonStorageAreaObserver
                 if (change.Type == ChangeType.Faulty)
                     continue;
 
-                observable.Publish(new JsonDocumentChange(change.Area, changeTypeGetter(change), change.CreateEntity(), new GenerationInfo(change.Generation, latestGeneration)));
+                observable.Publish(new JsonDocumentChange(change.Area, changeTypeGetter(change), change.CreateEntity(), change.Size, new GenerationInfo(change.Generation, latestGeneration)));
             }
         }
     }

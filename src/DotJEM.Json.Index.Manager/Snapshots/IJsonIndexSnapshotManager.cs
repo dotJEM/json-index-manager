@@ -50,9 +50,11 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
     public JsonIndexSnapshotManager(IJsonIndex index, ISnapshotStrategy snapshotStrategy, IWebTaskScheduler scheduler, string schedule)
     {
         this.index = index;
-        this.strategy = snapshotStrategy;
+        
         this.scheduler = scheduler;
         this.schedule = schedule;
+
+        this.strategy = snapshotStrategy;
         this.strategy.InfoStream.Subscribe(infoStream);
     }
 
@@ -76,7 +78,10 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
             
             index.Commit();
             ISnapshot snapshot = await index.TakeSnapshotAsync(target);
+
             ISnapshotWriter writer = snapshot.OpenWriter();
+            
+
 
             infoStream.WriteInfo($"Created snapshot");
             return true;
@@ -94,61 +99,50 @@ public class JsonIndexSnapshotManager : IJsonIndexSnapshotManager
 
     public async Task<RestoreSnapshotResult>  RestoreSnapshotAsync()
     {
-        int offset = 0;
-        while (true)
+        try
         {
-            try
+            ISnapshotStorage source = strategy.Storage;
+            if (source == null)
             {
-                ISnapshotStorage source = strategy.Storage;
-                if (source == null)
-                {
-                    infoStream.WriteInfo($"No snapshots found to restore");
-                    return new RestoreSnapshotResult(false, default);
-                }
-
-
-
-                //if (!source.Verify())
-                //{
-                //    infoStream.WriteWarning($"Deleting corrupt snapshot {source.Name}.");
-                //    source.Delete();
-                //    continue;
-                //}
-
-                foreach (ISnapshot snapshot in source.LoadSnapshots())
-                {
-                    try
-                    {
-                        await index.RestoreSnapshotAsync(snapshot);
-                        return new RestoreSnapshotResult(true, ...);
-                    }
-                    catch (Exception e)
-                    {
-                        snapshot.Delete();
-                    }
-                }
-
-                //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
-                //ISnapshot snapshot = source.LoadSnapshots().FirstOrDefault();
-               // if(snapshot is null)
-                    return new RestoreSnapshotResult(false, new StorageIngestState());
-                
-                
-
-                //ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
-                //if (source.Metadata["storageGenerations"] is not JObject generations) continue;
-                //if (generations["Areas"] is not JArray areas) continue;
-
-//                return new RestoreSnapshotResult(true, new StorageIngestState(
-                   // areas.ToObject<StorageAreaIngestState[]>()
- //               ));
-
-            }
-            catch (Exception ex)
-            {
-                infoStream.WriteError("Failed to restore snapshot.", ex);
+                infoStream.WriteInfo($"No snapshots found to restore");
                 return new RestoreSnapshotResult(false, default);
             }
+
+            int count = 0;
+            foreach (ISnapshot snapshot in source.LoadSnapshots())
+            {
+                count++;
+                try
+                {
+                    if (snapshot.Verify() && await index.RestoreSnapshotAsync(snapshot))
+                        return new RestoreSnapshotResult(true, new StorageIngestState());
+
+                    snapshot.Delete();
+                }
+                catch
+                {
+                    snapshot.Delete();
+                }
+            }
+            infoStream.WriteInfo($"No snapshots restored. {count} was found to be corrupt and was deleted.");
+            return new RestoreSnapshotResult(false, new StorageIngestState());
+
+            //infoStream.WriteInfo($"Trying to restore snapshot {source.Name}");
+            //ISnapshot snapshot = source.LoadSnapshots().FirstOrDefault();
+            // if(snapshot is null)
+            //ISnapshot restored = await index.RestoreSnapshotAsync(snapshot);
+            //if (source.Metadata["storageGenerations"] is not JObject generations) continue;
+            //if (generations["Areas"] is not JArray areas) continue;
+
+            //                return new RestoreSnapshotResult(true, new StorageIngestState(
+            // areas.ToObject<StorageAreaIngestState[]>()
+            //               ));
+
+        }
+        catch (Exception ex)
+        {
+            infoStream.WriteError("Failed to restore snapshot.", ex);
+            return new RestoreSnapshotResult(false, default);
         }
     }
 }

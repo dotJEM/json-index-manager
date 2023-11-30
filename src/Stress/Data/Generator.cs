@@ -16,10 +16,10 @@ public class StressDataGenerator
 
     public async Task StartAsync()
     {
-        await Task.WhenAll(areas.Select(GeneratorLoop));
+        await Task.WhenAll(areas.Select(area => Task.Run(async () => await GeneratorLoop(area))));
     }
 
-    private  async Task GeneratorLoop(IStorageArea area)
+    private async Task GeneratorLoop(IStorageArea area)
     {
         while (!stop)
         {
@@ -33,15 +33,16 @@ public class StressDataGenerator
                     }
                     catch (Exception e)
                     {
-                        await Task.Delay(random.Next(10, 100));
+                        //await Task.Delay(random.Next(10, 100));
                         area.Insert((string)doc["contentType"], doc);
                         // ignored
                     }
                 }
-                await Task.Delay(random.Next(100, 2000));
+                //await Task.Delay(random.Next(100, 200));
             }
             catch (Exception e)
             {
+                Console.WriteLine(e);
             }
         }
     }

@@ -8,13 +8,11 @@ using System.Threading.Tasks;
 using DotJEM.Json.Index.Manager;
 using DotJEM.Json.Index.Manager.Snapshots;
 using DotJEM.Json.Index.Manager.Snapshots.Zip;
-using DotJEM.Json.Index.Manager.Snapshots.Zip.Meta;
 using DotJEM.Json.Index.Manager.Tracking;
 using DotJEM.Json.Index.Manager.Writer;
 using DotJEM.Json.Index2;
 using DotJEM.Json.Index2.Documents.Fields;
 using DotJEM.Json.Index2.Snapshots;
-using DotJEM.Json.Index2.Storage;
 using DotJEM.Json.Storage;
 using DotJEM.Json.Storage.Configuration;
 using DotJEM.ObservableExtensions.InfoStreams;
@@ -22,11 +20,11 @@ using DotJEM.Web.Scheduler;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Analysis.Util;
 using Stress.Adapter;
-using Stress.Data;
 
 //TraceSource trace; 
 
 IStorageContext storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=SSN3DB;Integrated Security=True");
+//IStorageContext storage = new SqlServerStorageContext("Data Source=.\\DEV;Initial Catalog=STRESS;Integrated Security=True");
 storage.Configure.MapField(JsonField.Id, "id");
 storage.Configure.MapField(JsonField.ContentType, "contentType");
 storage.Configure.MapField(JsonField.Version, "$version");
@@ -35,7 +33,6 @@ storage.Configure.MapField(JsonField.Updated, "$updated");
 storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 
 //StressDataGenerator generator = new StressDataGenerator(
-//    storage.Area(),
 //    storage.Area("Settings"),
 //    storage.Area("Queue"),
 //    storage.Area("Recipes"),
@@ -49,6 +46,9 @@ storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 //Task genTask = generator.StartAsync();
 //await Task.Delay(5000);
 
+storage.Area();
+storage.Area("settings");
+
 Directory.CreateDirectory(".\\app_data\\index");
 
 IJsonIndex index = new JsonIndexBuilder("main")
@@ -58,15 +58,11 @@ IJsonIndex index = new JsonIndexBuilder("main")
     .WithSnapshoting()
     .Build();
 
-//IStorageIndex index = new LuceneStorageIndex(new LuceneFileIndexStorage(".\\app_data\\index",);
-//index.Configuration.SetTypeResolver("contentType");
-//index.Configuration.SetRawField("$raw");
-//index.Configuration.SetScoreField("$score");
-//index.Configuration.SetIdentity("id");
-//index.Configuration.SetSerializer(new ZipJsonDocumentSerializer());
-
 Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
+Directory.CreateDirectory(".\\app_data\\snapshots");
+
+string[] areas = new[] { "content", "settings", "diagnostic", "emsaqueue", "statistic" };
 
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
@@ -75,11 +71,10 @@ IJsonIndexManager jsonIndexManager = new JsonIndexManager(
     new JsonIndexWriter(index, scheduler)
 );
 
-
 Task run = Task.WhenAll(
     jsonIndexManager.InfoStream.ForEachAsync(Reporter.CaptureInfo),
     jsonIndexManager.RunAsync()
-    //genTask
+    //,genTask
 );
 
 
@@ -102,7 +97,7 @@ while (true)
 
 
         default:
-            Reporter.Report();
+            Reporter.Report(true);
             break;
     }
 }
@@ -133,9 +128,10 @@ public static class Reporter
     }
 
     private static string CleanLine = new string(' ', Console.BufferWidth);
-    public static void Report()
+
+    public static void Report(bool force = false)
     {
-        if(DateTime.Now - lastReport < TimeSpan.FromSeconds(2))
+        if(!force && DateTime.Now - lastReport < TimeSpan.FromSeconds(30))
             return;
 
         lastReport = DateTime.Now;

@@ -37,7 +37,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
     public void OnNext(IJsonDocumentChange value)
     {
-        observerTrackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation));
+        observerTrackers.AddOrUpdate(value.Area, _ => throw new InvalidDataException(), (_, state) => state.UpdateState(value.Generation, value.Size));
         Publish(IngestState);
     }
 
@@ -72,17 +72,28 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
             case FileEventType.OPEN:
                 restoreTrackers.AddOrUpdate(
                     sne.FileName,
-                    name => new IndexFileRestoreStateTracker(name),
-                    (name, tracker) => tracker.Restoring()
+                    name => new IndexFileRestoreStateTracker(name, sne.Progress),
+                    (name, tracker) => tracker.Restoring(sne.Progress)
                 );
                 break;
             case FileEventType.CLOSE:
                 restoreTrackers.AddOrUpdate(
                     sne.FileName,
-                    name => new IndexFileRestoreStateTracker(name),
-                    (name, tracker) => tracker.Complete()
+                    name => new IndexFileRestoreStateTracker(name, sne.Progress),
+                    (name, tracker) => tracker.Complete(sne.Progress)
                 );
                 break;
+
+            case FileEventType.PROGRESS:
+                
+                restoreTrackers.AddOrUpdate(
+                    sne.FileName,
+                    name => new IndexFileRestoreStateTracker(name, sne.Progress),
+                    (name, tracker) => tracker.Progress(sne.Progress)
+                );
+                break;
+
+
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -138,20 +149,26 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
     {
         public SnapshotFileRestoreState State { get; private set; }
 
-        public IndexFileRestoreStateTracker(string name)
+        public IndexFileRestoreStateTracker(string name, FileProgress progress)
         {
-            State = new SnapshotFileRestoreState(name, "PENDING", DateTime.Now, DateTime.Now);
+            State = new SnapshotFileRestoreState(name, "PENDING", DateTime.Now, DateTime.Now, progress);
         }
 
-        public IndexFileRestoreStateTracker Restoring()
+        public IndexFileRestoreStateTracker Restoring(FileProgress progress)
         {
-            State = State with{ State = "RESTORING", StartTime = DateTime.Now };
+            State = State with{ State = "RESTORING", StartTime = DateTime.Now, Progress = progress };
             return this;
         }
 
-        public IndexFileRestoreStateTracker Complete()
+        public IndexFileRestoreStateTracker Complete(FileProgress progress)
         {
-            State = State with{ State = "COMPLETE", StopTime = DateTime.Now };
+            State = State with{ State = "COMPLETE", StopTime = DateTime.Now, Progress = progress  };
+            return this;
+        }
+
+        public IndexFileRestoreStateTracker Progress(FileProgress progress)
+        {
+            State = State with{ State = "RESTORING", StartTime = DateTime.Now, Progress = progress };
             return this;
         }
     }
@@ -166,7 +183,7 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
 
         public StorageAreaIngestStateTracker(string area, JsonSourceEventType state)
         {
-            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state, 0, 0, TimeSpan.Zero, TimeSpan.Zero);
+            State = new StorageAreaIngestState(area, DateTime.Now, TimeSpan.Zero, 0, new GenerationInfo(-1,-1), state, 0, 0, TimeSpan.Zero, TimeSpan.Zero, 0);
         }
 
         public StorageAreaIngestStateTracker UpdateState(JsonSourceEventType state)
@@ -205,15 +222,15 @@ public class IngestProgressTracker : BasicSubject<ITrackerState>, IIngestProgres
             return this;
         }
 
-        public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation)
+        public StorageAreaIngestStateTracker UpdateState(GenerationInfo generation, int size)
         {
             if (initializing)
             {
-                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation, Duration = initTimer.Elapsed };
+                State = State with { IngestedCount = State.IngestedCount+1, Generation = generation, Duration = initTimer.Elapsed, BytesLoaded = size + State.BytesLoaded };
             }
             else
             {
-                State = State with { UpdatedCount = State.UpdatedCount+1, Generation = generation, LastUpdateDuration =updateTimer.Elapsed };
+                State = State with { UpdatedCount = State.UpdatedCount+1, Generation = generation, LastUpdateDuration =updateTimer.Elapsed, BytesLoaded = size + State.BytesLoaded };
 
             }
             return this;

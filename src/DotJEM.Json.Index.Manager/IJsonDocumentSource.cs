@@ -21,24 +21,19 @@ public interface IJsonDocumentChange
     GenerationInfo Generation { get; }
     JsonChangeType Type { get; }
     JObject Entity { get; }
+    public int Size { get; }
 }
 
 public class ChangeStream : BasicSubject<IJsonDocumentChange> { }
 
-public struct JsonDocumentChange : IJsonDocumentChange
+public record JsonDocumentChange(string Area, JsonChangeType Type, JObject Entity, int Size, GenerationInfo Generation)
+    : IJsonDocumentChange
 {
-    public GenerationInfo Generation { get; }
-    public JsonChangeType Type { get; }
-    public string Area { get; }
-    public JObject Entity { get; }
-
-    public JsonDocumentChange(string area, JsonChangeType type, JObject entity, GenerationInfo generationInfo)
-    {
-        Generation = generationInfo;
-        Type = type;
-        Area = area;
-        Entity = entity;
-    }
+    public GenerationInfo Generation { get; } = Generation;
+    public JsonChangeType Type { get; } = Type;
+    public string Area { get; } = Area;
+    public JObject Entity { get; } = Entity;
+    public int Size { get; } = Size;
 }
 
 public struct GenerationInfo

@@ -14,13 +14,17 @@ public class JsonStorageAreaObserverFactory : IJsonStorageAreaObserverFactory
 {
     private readonly IStorageContext context;
     private readonly IWebTaskScheduler scheduler;
+    private readonly string[] areas;
 
-    public JsonStorageAreaObserverFactory(IStorageContext context, IWebTaskScheduler scheduler)
+    public JsonStorageAreaObserverFactory(IStorageContext context, IWebTaskScheduler scheduler, params string[] areas)
     {
         this.context = context;
         this.scheduler = scheduler;
+        this.areas = areas;
     }
 
     public IEnumerable<IJsonStorageAreaObserver> CreateAll()
-        => context.AreaInfos.Select(areaInfo => new JsonStorageAreaObserver(context.Area(areaInfo.Name), scheduler));
+        => areas.Length == 0
+            ? context.AreaInfos.Select(areaInfo => new JsonStorageAreaObserver(context.Area(areaInfo.Name), scheduler))
+            : areas.Select(area => new JsonStorageAreaObserver(context.Area(area), scheduler));
 }

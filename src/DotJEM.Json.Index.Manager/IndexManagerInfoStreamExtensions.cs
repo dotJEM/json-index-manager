@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -55,7 +56,8 @@ public record struct StorageAreaIngestState(
     long UpdatedCount,
     long UpdateCycles,
     TimeSpan TotalUpdateDuration,
-    TimeSpan LastUpdateDuration)
+    TimeSpan LastUpdateDuration,
+    long BytesLoaded)
 {
     public override string ToString()
     {
@@ -64,17 +66,44 @@ public record struct StorageAreaIngestState(
             case JsonSourceEventType.Starting:
             case JsonSourceEventType.Initializing:
             case JsonSourceEventType.Initialized:
-                return $" -> [{LastEvent}:{Duration:hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount + UpdatedCount:N0} objects indexed."
-                       + $" ({IngestedCount / Duration.TotalSeconds:F} / sec)";
+                return $" -> [{LastEvent}:{Duration:hh\\:mm\\:ss}] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed:" + Environment.NewLine +
+                       $"    {IngestedCount + UpdatedCount:N0} objects indexed." + Environment.NewLine +
+                       $"    {IngestedCount / Duration.TotalSeconds:F} / sec " + Environment.NewLine +
+                       $"    {FormatBytes(BytesLoaded)}";
             case JsonSourceEventType.Updating:
             case JsonSourceEventType.Updated:
             case JsonSourceEventType.Stopped:
-                return $" -> [{LastEvent}:{LastUpdateDuration.TotalMilliseconds}ms] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed, {IngestedCount + UpdatedCount:N0} objects indexed."
-                       + $" Update cycle (avg): {UpdateCycles} ({(TotalUpdateDuration.TotalMilliseconds/Math.Max(1,UpdateCycles)):##.000}ms)";
+                return $" -> [{LastEvent}:{LastUpdateDuration.TotalMilliseconds}ms] {Area} {Generation.Current:N0} of {Generation.Latest:N0} changes processed:" + Environment.NewLine +
+                       $"    {IngestedCount + UpdatedCount:N0} objects indexed." + Environment.NewLine +
+                       $"    Update cycle (avg): {UpdateCycles} ({(TotalUpdateDuration.TotalMilliseconds / Math.Max(1, UpdateCycles)):##.000}ms)" + Environment.NewLine +
+                       $"    {FormatBytes(BytesLoaded)}";
         }
 
         return "???";
     }
+    
+    private const long KiloByte = 1024;
+    private const long MegaByte = KiloByte * KiloByte;
+    private const long GigaByte = MegaByte * KiloByte;
+    private const long TeraByte = GigaByte * KiloByte;
+    private string FormatBytes(long amount)
+    {
+        const int offset = 100;
+        switch (amount)
+        {
+            case (< KiloByte * offset):
+                return $"{amount} Bytes";
+            case (>= KiloByte * offset) and (< MegaByte * offset):
+                return $"{amount / KiloByte} KiloBytes";
+            case (>= MegaByte * offset) and (< GigaByte * offset):
+                return $"{amount / MegaByte} MegaBytes";
+            case (>= GigaByte * offset) and (< TeraByte * offset):
+                return $"{amount / GigaByte} GigaBytes";
+            case (>= TeraByte * offset):
+                return $"{amount / TeraByte} TeraBytes";
+        }
+    }
+
 }
 public class TrackerStateInfoStreamEvent : InfoStreamEvent
 {
