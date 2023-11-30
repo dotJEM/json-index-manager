@@ -46,11 +46,11 @@ storage.Configure.MapField(JsonField.SchemaVersion, "$schemaVersion");
 //Task genTask = generator.StartAsync();
 //await Task.Delay(5000);
 
-storage.Area();
-storage.Area("settings");
 
+
+Directory.Delete(".\\app_data\\index", true);
 Directory.CreateDirectory(".\\app_data\\index");
-
+Directory.CreateDirectory(".\\app_data\\snapshots");
 IJsonIndex index = new JsonIndexBuilder("main")
     .UsingSimpleFileStorage(".\\app_data\\index")
     .WithAnalyzer(cfg=> new StandardAnalyzer(cfg.Version,CharArraySet.EMPTY_SET))
@@ -58,15 +58,11 @@ IJsonIndex index = new JsonIndexBuilder("main")
     .WithSnapshoting()
     .Build();
 
-Directory.Delete(".\\app_data\\index", true);
-Directory.CreateDirectory(".\\app_data\\index");
-Directory.CreateDirectory(".\\app_data\\snapshots");
-
 string[] areas = new[] { "content", "settings", "diagnostic", "emsaqueue", "statistic" };
 
 IWebTaskScheduler scheduler = new WebTaskScheduler();
 IJsonIndexManager jsonIndexManager = new JsonIndexManager(
-    new JsonStorageDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler)),
+    new JsonStorageDocumentSource(new JsonStorageAreaObserverFactory(storage, scheduler,areas)),
     new JsonIndexSnapshotManager(index, new ZipSnapshotStrategy(".\\app_data\\snapshots"), scheduler, "30m"),
     new JsonIndexWriter(index, scheduler)
 );
@@ -116,6 +112,10 @@ public static class Reporter
     {
         switch (evt)
         {
+            case InfoStreamExceptionEvent error:
+                Console.WriteLine(error.Exception);
+                return;
+
             case TrackerStateInfoStreamEvent ievt :
                 lastState = ievt.State;
                 break;
